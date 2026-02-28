@@ -28,34 +28,22 @@ function PickDialog({
   submitting: boolean
 }) {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      background: 'rgba(0,0,0,0.45)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      <div style={{
-        background: 'var(--color-bg-surface)',
-        borderRadius: 16,
-        padding: '28px 28px 20px',
-        maxWidth: 400,
-        width: '90%',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.2)',
-      }}>
-        <p style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 10 }}>
+    <div className="fixed inset-0 z-[300] bg-black/45 flex items-center justify-center">
+      <div className="[background:var(--color-bg-surface)] rounded-2xl p-7 pb-5 max-w-[400px] w-[90%] shadow-2xl">
+        <p className="text-[17px] font-bold mb-[10px] [color:var(--color-text-primary)]">
           Set {label} as the official timetable?
         </p>
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 22 }}>
+        <p className="text-[13px] mb-[22px] [color:var(--color-text-secondary)]">
           This will send it for HOD approval. You can still make changes until approval is given.
         </p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button className="btn-secondary" onClick={onCancel} style={{ borderRadius: 999 }}>
+        <div className="flex gap-[10px] justify-end">
+          <button className="btn-secondary rounded-full" onClick={onCancel}>
             Cancel
           </button>
           <button
-            className="btn-primary"
+            className="btn-primary rounded-full flex items-center gap-[6px]"
             onClick={onConfirm}
             disabled={submitting}
-            style={{ borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6 }}
           >
             {submitting ? 'Sending…' : (
               <><CheckCircle size={14} /> Confirm & Send for Approval</>
@@ -74,6 +62,11 @@ export default function CompareVariantsPage() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const jobId = params.jobId as string
+
+  // If the page was opened via ?a=&b= (from the review page), back should
+  // always navigate back to the review page rather than dropping to the
+  // empty VariantGrid overview intermediate step.
+  const enteredWithParams = !!(searchParams.get('a') && searchParams.get('b'))
 
   const [variants,    setVariants]    = useState<VariantSummary[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -166,29 +159,32 @@ export default function CompareVariantsPage() {
   const inCompareMode = !!compareIds
 
   return (
-    <div style={{ padding: '24px 24px 80px', maxWidth: 1400, margin: '0 auto' }}>
+    <div className="px-6 pb-20 mx-auto max-w-[1400px]">
       {/* Page header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+      <div className="flex items-center gap-3 mb-5">
         <button
+          type="button"
+          aria-label="Go back"
+          title="Go back"
           onClick={() => {
-            if (inCompareMode) {
+            if (inCompareMode && !enteredWithParams) {
               setCompareIds(null)
               setDiffResult(null)
             } else {
               router.back()
             }
           }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--color-text-secondary)' }}
+          className="flex items-center border-0 bg-transparent cursor-pointer [color:var(--color-text-secondary)]"
         >
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+          <h1 className="text-xl font-bold [color:var(--color-text-primary)]">
             {inCompareMode
               ? `${labelFor(compareIds![0])} vs ${labelFor(compareIds![1])}`
               : 'Timetable Variants'}
           </h1>
-          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+          <p className="text-xs mt-[2px] [color:var(--color-text-muted)]">
             {inCompareMode
               ? 'Differences highlighted in yellow · Conflicts in red · Identical in blue'
               : 'Select 2 variants to compare side-by-side'}
@@ -197,15 +193,7 @@ export default function CompareVariantsPage() {
       </div>
 
       {error && (
-        <div style={{
-          padding: '10px 14px',
-          background: 'var(--color-danger-subtle)',
-          border: '1px solid var(--color-danger)',
-          borderRadius: 8,
-          color: 'var(--color-danger-text)',
-          fontSize: 13,
-          marginBottom: 16,
-        }}>
+        <div className="px-[14px] py-[10px] rounded-lg border text-[13px] mb-4 [border-color:var(--color-danger)] [background:var(--color-danger-subtle)] [color:var(--color-danger-text)]">
           {error}
         </div>
       )}
@@ -223,7 +211,7 @@ export default function CompareVariantsPage() {
 
       {/* Compare mode */}
       {inCompareMode && (
-        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+        <div className="flex gap-5 items-start">
           {/* Department filter sidebar */}
           <DepartmentTree
             departments={depts}
@@ -233,7 +221,7 @@ export default function CompareVariantsPage() {
           />
 
           {/* Main diff grid */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex-1 min-w-0">
             <CompareGrid
               result={diffResult}
               labelA={labelFor(compareIds![0])}

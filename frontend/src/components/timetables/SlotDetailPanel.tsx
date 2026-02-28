@@ -1,17 +1,7 @@
 'use client'
 
 /**
- * SlotDetailPanel — right slide-in panel showing full details for a timetable cell.
- *
- * NOT a modal — stays open while browsing the grid.
- * Slides in with translateX animation (300ms ease).
- *
- * Shows:
- *   - Course name + code
- *   - Department + Year / Section
- *   - Teacher initial avatar + name
- *   - Room + capacity / enrolled
- *   - Conflict status
+ * SlotDetailPanel - right slide-in panel showing full details for a timetable cell.
  */
 
 import { X, User, MapPin, BookOpen, AlertCircle, CheckCircle, Users } from 'lucide-react'
@@ -24,19 +14,24 @@ interface SlotDetailPanelProps {
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-function row(icon: React.ReactNode, label: string, value: string | React.ReactNode) {
+// Pre-defined Tailwind classes for year colours — no inline styles needed.
+const YEAR_CLASSES = [
+  'bg-[#e8f0fe] text-[#1a73e8]',
+  'bg-[#e6f4ea] text-[#34a853]',
+  'bg-[#fef7e0] text-[#f9ab00]',
+  'bg-[#fce8e6] text-[#ea4335]',
+]
+const YEAR_FALLBACK = 'bg-[#f3e8fd] text-[#9334ea]'
+
+function InfoRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-      <span style={{ color: 'var(--color-text-muted)', flexShrink: 0, marginTop: 1 }}>
-        {icon}
-      </span>
+    <div className="flex items-start gap-[10px]">
+      <span className="shrink-0 mt-[1px] [color:var(--color-text-muted)]">{icon}</span>
       <div>
-        <p style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
+        <p className="text-[10px] font-medium uppercase tracking-[0.05em] mb-[2px] [color:var(--color-text-muted)]">
           {label}
         </p>
-        <p style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>
-          {value}
-        </p>
+        <p className="text-[13px] font-medium [color:var(--color-text-primary)]">{children}</p>
       </div>
     </div>
   )
@@ -45,19 +40,7 @@ function row(icon: React.ReactNode, label: string, value: string | React.ReactNo
 function TeacherAvatar({ name }: { name: string }) {
   const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
   return (
-    <div style={{
-      width: 32,
-      height: 32,
-      borderRadius: '50%',
-      background: '#e8f0fe',
-      color: '#1a73e8',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 13,
-      fontWeight: 700,
-      flexShrink: 0,
-    }}>
+    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 bg-[#e8f0fe] text-[#1a73e8]">
       {initials || <User size={14} />}
     </div>
   )
@@ -67,170 +50,112 @@ export function SlotDetailPanel({ slot, onClose }: SlotDetailPanelProps) {
   const isOpen = slot !== null
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      right: 0,
-      height: '100%',
-      width: 320,
-      background: 'var(--color-bg-surface)',
-      borderLeft: '1px solid var(--color-border)',
-      boxShadow: '-4px 0 24px rgba(0,0,0,0.10)',
-      zIndex: 200,
-      display: 'flex',
-      flexDirection: 'column',
-      transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-      transition: 'transform 280ms cubic-bezier(.4,0,.2,1)',
-    }}>
+    <div
+      className={[
+        'fixed top-0 right-0 h-full flex flex-col z-[200] w-[320px]',
+        '[background:var(--color-bg-surface)] [border-left:1px_solid_var(--color-border)]',
+        'shadow-[-4px_0_24px_rgba(0,0,0,0.10)]',
+        'transition-transform duration-[280ms] [transition-timing-function:cubic-bezier(.4,0,.2,1)]',
+        isOpen ? 'translate-x-0' : 'translate-x-full',
+      ].join(' ')}
+    >
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '16px 18px',
-        borderBottom: '1px solid var(--color-border)',
-      }}>
-        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>
-          Slot Details
-        </p>
+      <div className="flex items-center justify-between px-[18px] py-4 [border-bottom:1px_solid_var(--color-border)]">
+        <p className="text-sm font-bold [color:var(--color-text-primary)]">Slot Details</p>
         <button
+          type="button"
           onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 4,
-            borderRadius: 6,
-            color: 'var(--color-text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-          }}
+          aria-label="Close slot details"
+          title="Close"
+          className="flex items-center p-1 rounded border-0 bg-transparent cursor-pointer [color:var(--color-text-muted)]"
         >
           <X size={18} />
         </button>
       </div>
 
-      {/* Content */}
+      {/* Body */}
       {slot && (
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '20px 18px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 20,
-        }}>
+        <div className="flex-1 overflow-y-auto px-[18px] py-5 flex flex-col gap-5">
+
           {/* Conflict banner */}
-          {slot.has_conflict && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 8,
-              padding: '10px 12px',
-              borderRadius: 8,
-              background: '#fce8e6',
-              border: '1px solid #ea4335',
-            }}>
-              <AlertCircle size={15} color="#ea4335" style={{ flexShrink: 0, marginTop: 1 }} />
-              <p style={{ fontSize: 12, color: '#c5221f', fontWeight: 500 }}>
+          {slot.has_conflict ? (
+            <div className="flex items-start gap-2 px-3 py-[10px] rounded-lg border border-[#ea4335] bg-[#fce8e6]">
+              <AlertCircle size={15} color="#ea4335" className="shrink-0 mt-[1px]" />
+              <p className="text-xs font-medium text-[#c5221f]">
                 {slot.conflict_description || 'Scheduling conflict detected for this slot.'}
               </p>
             </div>
-          )}
-
-          {!slot.has_conflict && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 10px',
-              borderRadius: 6,
-              background: '#e6f4ea',
-              border: '1px solid #34a853',
-              width: 'fit-content',
-            }}>
+          ) : (
+            <div className="flex items-center gap-[6px] px-[10px] py-[6px] rounded-md border border-[#34a853] bg-[#e6f4ea] w-fit">
               <CheckCircle size={13} color="#34a853" />
-              <span style={{ fontSize: 11, color: '#137333', fontWeight: 600 }}>No conflicts</span>
+              <span className="text-[11px] font-semibold text-[#137333]">No conflicts</span>
             </div>
           )}
 
-          {/* Time info */}
+          {/* Time */}
           <div>
-            <p style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500, textTransform: 'uppercase', marginBottom: 4 }}>
-              Schedule
-            </p>
-            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            <p className="text-[11px] font-medium uppercase mb-1 [color:var(--color-text-muted)]">Schedule</p>
+            <p className="text-[15px] font-bold [color:var(--color-text-primary)]">
               {DAY_NAMES[slot.day] ?? `Day ${slot.day}`}
             </p>
-            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
-              {slot.time_slot}
-            </p>
+            <p className="text-[13px] [color:var(--color-text-secondary)]">{slot.time_slot}</p>
           </div>
 
           {/* Course */}
-          {row(
-            <BookOpen size={15} />,
-            'Course',
+          <InfoRow icon={<BookOpen size={15} />} label="Course">
             <>
-              <span style={{ fontWeight: 700 }}>{slot.subject_name}</span>
+              <span className="font-bold">{slot.subject_name}</span>
               {slot.subject_code && (
-                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 6 }}>
-                  {slot.subject_code}
-                </span>
+                <span className="text-[11px] ml-[6px] [color:var(--color-text-muted)]">{slot.subject_code}</span>
               )}
-            </>,
-          )}
+            </>
+          </InfoRow>
 
-          {/* Teacher */}
-          {row(
-            <TeacherAvatar name={slot.faculty_name} />,
-            'Faculty',
-            slot.faculty_name || '—',
-          )}
+          {/* Faculty */}
+          <InfoRow icon={<TeacherAvatar name={slot.faculty_name} />} label="Faculty">
+            {slot.faculty_name || '\u2014'}
+          </InfoRow>
 
           {/* Room */}
-          {row(
-            <MapPin size={15} />,
-            'Room',
+          <InfoRow icon={<MapPin size={15} />} label="Room">
             <>
-              {slot.room_number || '—'}
+              {slot.room_number || '\u2014'}
               {slot.room_capacity > 0 && (
-                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 6 }}>
+                <span className="text-[11px] ml-[6px] [color:var(--color-text-muted)]">
                   (capacity {slot.room_capacity})
                 </span>
               )}
-            </>,
-          )}
+            </>
+          </InfoRow>
 
           {/* Enrollment */}
-          {slot.enrolled_count > 0 && row(
-            <Users size={15} />,
-            'Enrolled',
-            <>
-              <span style={{ fontWeight: 700, color: slot.enrolled_count > slot.room_capacity ? '#ea4335' : 'inherit' }}>
-                {slot.enrolled_count}
-              </span>
-              {slot.room_capacity > 0 && (
-                <span style={{ color: 'var(--color-text-muted)' }}> / {slot.room_capacity}</span>
-              )}
-            </>,
+          {slot.enrolled_count > 0 && (
+            <InfoRow icon={<Users size={15} />} label="Enrolled">
+              <>
+                <span
+                  className={`font-bold ${slot.enrolled_count > slot.room_capacity ? 'text-[#ea4335]' : ''}`}
+                >
+                  {slot.enrolled_count}
+                </span>
+                {slot.room_capacity > 0 && (
+                  <span className="[color:var(--color-text-muted)]"> / {slot.room_capacity}</span>
+                )}
+              </>
+            </InfoRow>
           )}
 
-          {/* Section info */}
+          {/* Year / Section chips */}
           {(slot.section || slot.year) && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               {slot.year && (
-                <span style={{
-                  fontSize: 11, fontWeight: 600,
-                  padding: '3px 8px', borderRadius: 4,
-                  background: ['#e8f0fe', '#e6f4ea', '#fef7e0', '#fce8e6'][slot.year - 1] || '#f3e8fd',
-                  color: ['#1a73e8', '#34a853', '#f9ab00', '#ea4335'][slot.year - 1] || '#9334ea',
-                }}>
+                <span
+                  className={`text-[11px] font-semibold px-2 py-[3px] rounded ${YEAR_CLASSES[(slot.year - 1)] ?? YEAR_FALLBACK}`}
+                >
                   Year {slot.year}
                 </span>
               )}
               {slot.section && (
-                <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: 'var(--color-bg-surface-2)', color: 'var(--color-text-secondary)' }}>
+                <span className="text-[11px] font-medium px-2 py-[3px] rounded [background:var(--color-bg-surface-2)] [color:var(--color-text-secondary)]">
                   Section {slot.section}
                 </span>
               )}
@@ -238,10 +163,10 @@ export function SlotDetailPanel({ slot, onClose }: SlotDetailPanelProps) {
           )}
 
           {/* Batch */}
-          {slot.batch_name && row(
-            <Users size={15} />,
-            'Batch',
-            slot.batch_name,
+          {slot.batch_name && (
+            <InfoRow icon={<Users size={15} />} label="Batch">
+              {slot.batch_name}
+            </InfoRow>
           )}
         </div>
       )}

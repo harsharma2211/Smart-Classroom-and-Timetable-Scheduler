@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import apiClient from '@/lib/api'
-import { GoogleSpinner } from '@/components/ui/GoogleSpinner'
+import { ListSkeleton, TableSkeleton } from '@/components/LoadingSkeletons'
 
 // Lazy load ExportButton to reduce initial bundle size (removes jsPDF, html2canvas, xlsx ~800KB)
 const ExportButton = dynamic(() => import('@/components/shared/ExportButton'), {
@@ -274,12 +274,7 @@ export default function StudentDashboard() {
               </div>
 
               {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <GoogleSpinner size={32} className="mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading today's schedule...</p>
-                  </div>
-                </div>
+                <ListSkeleton items={3} />
               ) : todaysClasses.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-4xl mb-4">📅</div>
@@ -361,12 +356,7 @@ export default function StudentDashboard() {
               </div>
               
               {!studentProfile ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <GoogleSpinner size={24} className="mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading courses...</p>
-                  </div>
-                </div>
+                <TableSkeleton rows={4} columns={3} />
               ) : studentProfile.enrolled_courses.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-4xl mb-4">📚</div>

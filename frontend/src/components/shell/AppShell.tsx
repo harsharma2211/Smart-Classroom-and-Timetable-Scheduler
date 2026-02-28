@@ -34,6 +34,7 @@ import {
   HelpCircle,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { Breadcrumb } from './Breadcrumb'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,10 +107,18 @@ function resolveUser(u: {
 
 function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   const { initials } = resolveUser({ username: name })
+  const ref = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.setProperty('--av-size', `${size}px`)
+    el.style.setProperty('--av-font', `${size * 0.44}px`)
+    el.style.setProperty('--av-bg', seedHsl(name))
+  }, [size, name])
   return (
     <span
-      className="inline-flex items-center justify-center rounded-full font-semibold text-white select-none shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.44, background: seedHsl(name) }}
+      ref={ref}
+      className="inline-flex items-center justify-center rounded-full font-semibold text-white select-none shrink-0 [width:var(--av-size)] [height:var(--av-size)] [font-size:var(--av-font)] [background:var(--av-bg)]"
     >
       {initials}
     </span>
@@ -328,14 +337,7 @@ export default function AppShell({ children }: DashboardLayoutProps) {
               style={{ mixBlendMode: 'multiply', flexShrink: 0 }}
             />
             <span
-              className="hidden sm:inline"
-              style={{
-                fontSize: '17px',
-                fontWeight: 600,
-                color: 'var(--color-text-primary, #202124)',
-                whiteSpace: 'nowrap',
-                letterSpacing: '-0.01em',
-              }}
+              className="hidden sm:inline text-[17px] font-semibold [color:var(--color-text-primary,#202124)] whitespace-nowrap tracking-[-0.01em]"
             >
               Cadence
             </span>
@@ -443,25 +445,6 @@ export default function AppShell({ children }: DashboardLayoutProps) {
                     {displayName}
                   </p>
 
-                  {/* Profile | Sign out — single pill container with thin divider, Google style */}
-                  <div className="flex w-full rounded-full border border-[#c5ccd8] dark:border-[#5f6368] bg-white dark:bg-[#2d2f31] overflow-hidden">
-                    <Link
-                      href={`/${role}/profile`}
-                      onClick={() => setProfileOpen(false)}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
-                    >
-                      <UserIcon size={15} className="shrink-0" />
-                      Profile
-                    </Link>
-                    <div className="w-px my-2 bg-[#c5ccd8] dark:bg-[#5f6368]" />
-                    <button
-                      onClick={() => { setProfileOpen(false); setShowSignOut(true) }}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
-                    >
-                      <LogOut size={15} className="shrink-0" />
-                      Sign out
-                    </button>
-                  </div>
                 </div>
 
                 {/* ── Cards section ── */}
@@ -474,6 +457,26 @@ export default function AppShell({ children }: DashboardLayoutProps) {
                     <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#E8F0FE] dark:bg-[#1C2B4A] text-[#1A73E8] dark:text-[#8AB4F8] uppercase tracking-wider">
                       {rolePill}
                     </span>
+                  </div>
+
+                    {/* Profile | Sign out */}
+                  <div className="flex rounded-full border border-[#c5ccd8] dark:border-[#5f6368] bg-white dark:bg-[#2d2f31] overflow-hidden">
+                    <Link
+                      href={`/${role}/profile`}
+                      onClick={() => setProfileOpen(false)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+                    >
+                      <UserIcon size={15} className="shrink-0" />
+                      Profile
+                    </Link>
+                    <div className="w-px my-2 bg-[#c5ccd8] dark:bg-[#5f6368]" />
+                    <button
+                      onClick={() => { setProfileOpen(false); setShowSignOut(true) }}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+                    >
+                      <LogOut size={15} className="shrink-0" />
+                      Sign out
+                    </button>
                   </div>
 
                   {/* Settings + Theme */}
@@ -604,15 +607,23 @@ export default function AppShell({ children }: DashboardLayoutProps) {
         className={[
           contentMarginCls,
           'mt-14 md:mt-16',
-          'mx-2 md:mx-3 mb-2 md:mb-3',
-          'min-h-[calc(100vh-58px)] md:min-h-[calc(100vh-68px)]',
-          'rounded-2xl',
-          'bg-white dark:bg-[#1e1e1e]',
-          'p-3 md:p-6',
-          '[&>*]:rounded-2xl',
         ].join(' ')}
       >
-        {children}
+        {/* ── Content card ──────────────────────────────────────────────── */}
+        <div
+          className={[
+            'mx-2 md:mx-3 mb-2 md:mb-3',
+            'min-h-[calc(100vh-58px)] md:min-h-[calc(100vh-68px)]',
+            'rounded-2xl',
+            'bg-white dark:bg-[#1e1e1e]',
+            'p-3 md:p-6',
+            '[&>*]:rounded-2xl',
+          ].join(' ')}
+        >
+          {/* ── Path title — Google Drive-style, lives inside the card ── */}
+          <Breadcrumb />
+          {children}
+        </div>
       </main>
 
       {/* ══════════════════════════════════════════════════════════

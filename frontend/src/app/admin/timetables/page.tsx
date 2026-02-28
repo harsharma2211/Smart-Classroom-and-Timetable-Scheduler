@@ -202,6 +202,7 @@ function transformJobs(jobs: any[]): TimetableListItem[] {
 
 export default function AdminTimetablesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [activeTab, setActiveTab] = useState<string>('all')
   const [timetables, setTimetables] = useState<TimetableListItem[]>(() => {
     // ── Stale-while-revalidate: seed state from sessionStorage immediately ──
     try {
@@ -356,12 +357,13 @@ export default function AdminTimetablesPage() {
     return grouped
   }, [timetables])
 
-  // ── Derived counts for summary tiles ─────────────────────────────────────
+  // ── Derived counts for filter tabs ─────────────────────────────────────
   const counts = useMemo(() => ({
-    approved:  timetables.filter(t => t.status === 'approved').length,
-    pending:   timetables.filter(t => t.status === 'pending').length,
-    draft:     timetables.filter(t => t.status === 'draft').length,
-    rejected:  timetables.filter(t => t.status === 'rejected').length,
+    total:          timetables.filter(t => (t.status as string) !== 'running' && t.status !== 'pending').length,
+    approved:       timetables.filter(t => t.status === 'approved').length,
+    pending_review: timetables.filter(t => t.status === 'pending_review').length,
+    draft:          timetables.filter(t => t.status === 'draft').length,
+    rejected:       timetables.filter(t => t.status === 'rejected').length,
   }), [timetables])
 
   const groupedTimetables = getGroupedBySemester()
@@ -370,11 +372,7 @@ export default function AdminTimetablesPage() {
   if (loading && timetables.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[1,2,3,4].map(i => (
-            <div key={i} style={{ height: 74, background: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }} className="animate-pulse" />
-          ))}
-        </div>
+        <div className="h-8 w-48 rounded-lg bg-[var(--color-bg-surface)] animate-pulse" />
         <TimetableListSkeleton cards={6} />
       </div>
     )
@@ -401,31 +399,57 @@ export default function AdminTimetablesPage() {
   return (
     <div className="space-y-5">
 
-      {/* ── 1. Summary metric tiles ──────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <MetricTile value={counts.approved}  label="Approved"  color="var(--color-success-text)" />
-        <MetricTile value={counts.pending}   label="Pending"   color="var(--color-warning-text)" />
-        <MetricTile value={counts.draft}     label="Draft"     color="var(--color-text-secondary)" />
-        <MetricTile value={counts.rejected}  label="Rejected"  color="var(--color-danger-text)" />
-      </div>
-
-      {/* ── 2. Page toolbar ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4">
+      {/* ── 1. Page heading + Generate button ───────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+          <h1 className="text-2xl font-normal tracking-tight [color:var(--color-text-primary)]">
             Timetables
-          </h2>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
+          </h1>
+          <p className="text-sm mt-0.5 [color:var(--color-text-secondary)]">
             {totalCount} schedule{totalCount !== 1 ? 's' : ''} across all semesters
           </p>
         </div>
-        <Link href="/admin/timetables/new" className="btn-primary" style={{ flexShrink: 0 }}>
+        <Link href="/admin/timetables/new" className="btn-primary shrink-0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           <span className="hidden sm:inline">Generate Timetable</span>
           <span className="sm:hidden">Generate</span>
         </Link>
+      </div>
+
+      {/* ── 2. Status filter tabs ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+        {([
+          { id: 'all',            label: 'All',            count: counts.total },
+          { id: 'approved',       label: 'Approved',       count: counts.approved },
+          { id: 'pending_review', label: 'Pending Review', count: counts.pending_review },
+          { id: 'draft',          label: 'Draft',          count: counts.draft },
+          { id: 'rejected',       label: 'Rejected',       count: counts.rejected },
+        ] as const).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={[
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+              activeTab === tab.id
+                ? 'bg-[#e8f0fe] [color:var(--color-primary,#1a73e8)]'
+                : '[color:var(--color-text-secondary)] hover:bg-[#f1f3f4] dark:hover:bg-[#2d2d2d]',
+            ].join(' ')}
+          >
+            {tab.label}
+            {tab.count > 0 && (
+              <span className={[
+                'text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center',
+                activeTab === tab.id
+                  ? 'bg-[#1a73e8] text-white'
+                  : 'bg-[#f1f3f4] dark:bg-[#2d2d2d] [color:var(--color-text-muted)]',
+              ].join(' ')}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* ── 3. Active-jobs banner ────────────────────────────────────────── */}
@@ -514,6 +538,11 @@ export default function AdminTimetablesPage() {
             {Object.entries(groupedTimetables)
               .sort(([a], [b]) => b.localeCompare(a))
               .map(([semesterKey, items]) => {
+                // Apply active tab filter
+                const filteredItems = activeTab === 'all'
+                  ? items
+                  : items.filter(t => t.status === activeTab)
+                if (filteredItems.length === 0) return null
                 const [academicYear, semester] = semesterKey.split('-')
                 return (
                   <div key={semesterKey} className="card">
@@ -523,8 +552,8 @@ export default function AdminTimetablesPage() {
                         <div>
                           <h3 className="card-title">{academicYear} · Semester {semester}</h3>
                           <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                            {items.length} course{items.length !== 1 ? 's' : ''} &nbsp;·&nbsp;
-                            {items.filter(t => t.status === 'approved').length} approved
+                            {filteredItems.length} course{filteredItems.length !== 1 ? 's' : ''} &nbsp;·&nbsp;
+                            {filteredItems.filter(t => t.status === 'approved').length} approved
                           </p>
                         </div>
                       </div>
@@ -533,19 +562,17 @@ export default function AdminTimetablesPage() {
                     {/* Items — grid or list */}
                     {viewMode === 'grid' ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {items
+                        {filteredItems
                           .sort((a, b) => (a.department ?? '').localeCompare(b.department ?? ''))
                           .map(t => {
                             const isRunning = runningJobs.some(j => j.job_id === t.id)
                             const href = isRunning ? `/admin/timetables/status/${t.id}` : `/admin/timetables/${t.id}/review`
-                            const showCompare = !isRunning && (t.status as string) === 'completed'
                             return (
-                              <div key={t.id} onClick={() => router.push(href)} style={{
+                              <Link key={t.id} href={href} style={{
                                 display: 'block', padding: '14px 16px',
                                 background: 'var(--color-bg-page)', border: '1px solid var(--color-border)',
-                                borderRadius: 'var(--radius-md)',
+                                borderRadius: 'var(--radius-md)', textDecoration: 'none',
                                 transition: 'border-color 120ms, background 120ms',
-                                cursor: 'pointer',
                               }}
                                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-primary-subtle)' }}
                                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-page)' }}
@@ -579,57 +606,24 @@ export default function AdminTimetablesPage() {
                                     </span>
                                   </div>
                                 </div>
-                                {showCompare && (
-                                  <div
-                                    onClick={e => e.stopPropagation()}
-                                    style={{ marginTop: 10, borderTop: '1px solid var(--color-border)', paddingTop: 10 }}
-                                  >
-                                    <Link
-                                      href={`/admin/timetables/compare/${t.id}`}
-                                      style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                        padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                                        color: 'var(--color-primary)',
-                                        background: 'var(--color-primary-subtle)',
-                                        border: '1px solid var(--color-primary)',
-                                        textDecoration: 'none',
-                                        transition: 'opacity 120ms',
-                                        width: '100%',
-                                      }}
-                                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.8' }}
-                                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-                                    >
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="21" y1="10" x2="3" y2="10" />
-                                        <line x1="21" y1="6" x2="3" y2="6" />
-                                        <line x1="21" y1="14" x2="3" y2="14" />
-                                        <line x1="21" y1="18" x2="3" y2="18" />
-                                      </svg>
-                                      Compare Variants
-                                    </Link>
-                                  </div>
-                                )}
-                              </div>
+                              </Link>
                             )
                           })}
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {items
+                        {filteredItems
                           .sort((a, b) => (a.department ?? '').localeCompare(b.department ?? ''))
                           .map(t => {
                             const isRunning = runningJobs.some(j => j.job_id === t.id)
                             const href = isRunning ? `/admin/timetables/status/${t.id}` : `/admin/timetables/${t.id}/review`
-                            const showCompare = !isRunning && (t.status as string) === 'completed'
                             return (
-                              <div key={t.id} style={{
+                              <Link key={t.id} href={href} style={{
                                 display: 'flex', alignItems: 'center', gap: 12,
-                                padding: '10px 4px',
+                                padding: '10px 4px', textDecoration: 'none',
                                 borderBottom: '1px solid var(--color-border)',
                                 transition: 'background 100ms',
-                                cursor: 'pointer',
                               }}
-                                onClick={() => router.push(href)}
                                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-primary-subtle)' }}
                                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                               >
@@ -649,20 +643,7 @@ export default function AdminTimetablesPage() {
                                   {t.conflicts} conflict{t.conflicts !== 1 ? 's' : ''}
                                 </span>
                                 <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>{t.lastUpdated}</span>
-                                {showCompare && (
-                                  <Link
-                                    href={`/admin/timetables/compare/${t.id}`}
-                                    onClick={e => e.stopPropagation()}
-                                    style={{
-                                      flexShrink: 0, fontSize: 12, fontWeight: 600,
-                                      color: 'var(--color-primary)',
-                                      textDecoration: 'none', whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    Compare →
-                                  </Link>
-                                )}
-                              </div>
+                              </Link>
                             )
                           })}
                       </div>

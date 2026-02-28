@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { GoogleSpinner } from '@/components/ui/GoogleSpinner'
+import { TimetableGridSkeleton } from '@/components/LoadingSkeletons'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']
@@ -127,12 +127,9 @@ export default function StudentTimetable() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <GoogleSpinner size={32} className="mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Loading schedule...</p>
-          </div>
-        </div>
+      <div className="space-responsive">
+        <TimetableGridSkeleton />
+      </div>
     )
   }
 

@@ -207,19 +207,39 @@ export function StatsSkeleton({ count = 4 }: { count?: number }) {
   )
 }
 
-// Full Page Loading
+/**
+ * PageLoader — full-screen shimmer overlay.
+ * Use only when you need to block the entire viewport while
+ * critical content is loading (rare — prefer inline skeletons instead).
+ */
 export function PageLoader() {
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-50"
+      className="fixed inset-0 z-50 flex flex-col gap-4 p-6"
       style={{ background: 'var(--color-bg-page)' }}
     >
-      <GoogleSpinner size={48} />
+      {/* Header bar */}
+      <Skeleton style={{ height: '56px', width: '100%', borderRadius: '12px' }} />
+      <div className="flex gap-4 flex-1">
+        {/* Sidebar */}
+        <Skeleton style={{ width: '220px', borderRadius: '12px', flexShrink: 0 }} />
+        {/* Content */}
+        <div className="flex-1 space-y-4">
+          <Skeleton style={{ height: '48px', width: '40%', borderRadius: '8px' }} />
+          <Skeleton style={{ height: '120px', borderRadius: '12px' }} />
+          <Skeleton style={{ height: '80px', borderRadius: '12px' }} />
+          <Skeleton style={{ height: '80px', borderRadius: '12px' }} />
+        </div>
+      </div>
     </div>
   )
 }
 
-// Spinner Component
+/**
+ * Spinner — convenience wrapper around GoogleSpinner.
+ * ONLY appropriate for button/action loading states (size="sm") and small
+ * inline indicators. Do NOT use for page-level or section-level loading.
+ */
 export function Spinner({
   size = 'md',
   className = '',

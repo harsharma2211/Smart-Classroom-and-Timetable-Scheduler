@@ -8,11 +8,14 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { GoogleSpinner } from '@/components/ui/GoogleSpinner'
 import { useAuth } from '@/context/AuthContext'
 import { authenticatedFetch } from '@/lib/auth'
 import { useToast } from '@/components/Toast'
-import { TimetableGridSkeleton } from '@/components/LoadingSkeletons'
+import { TimetableGridSkeleton, VariantCardSkeleton, Skeleton } from '@/components/LoadingSkeletons'
+import { VariantGrid } from '@/components/timetables/VariantGrid'
+import { DepartmentTree } from '@/components/timetables/DepartmentTree'
+import { SlotDetailPanel } from '@/components/timetables/SlotDetailPanel'
+import type { VariantSummary, VariantScoreCard, TimetableSlotDetailed, DepartmentOption } from '@/types/timetable'
 
 // Backend types matching Django models
 interface TimetableEntry {
@@ -150,57 +153,59 @@ function subjectPaletteIndex(key: string): number {
   return Math.abs(h) % SUBJECT_PALETTES.length
 }
 
-// SVG donut score ring
-function ScoreRing({ score, size = 72 }: { score: number; size?: number }) {
-  const r = (size - 10) / 2
-  const circ = 2 * Math.PI * r
-  const pct = Math.min(Math.max(score, 0), 100)
-  const dash = (pct / 100) * circ
-  const color = pct >= 80 ? '#16a34a' : pct >= 60 ? '#ca8a04' : '#dc2626'
-  return (
-    <svg width={size} height={size} className="rotate-[-90deg]">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-border)" strokeWidth={8} />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={color} strokeWidth={8}
-        strokeDasharray={`${dash} ${circ}`}
-        strokeLinecap="round"
-        className="[transition:stroke-dasharray_0.6s_ease]"
-      />
-      <text
-        x="50%" y="50%"
-        dominantBaseline="middle" textAnchor="middle"
-        fill="currentColor"
-        fontSize={size < 64 ? 11 : 14}
-        fontWeight={700}
-        className="[transform:rotate(90deg)] [transform-origin:center]"
-        style={{ fill: 'var(--color-text-primary)' }}
-      >
-        {pct.toFixed(0)}%
-      </text>
-    </svg>
-  )
+// ── Adapter: TimetableVariant → VariantSummary (for VariantGrid/VariantCard) ────────
+function toVariantSummary(
+  v: TimetableVariant,
+  isRecommended: boolean,
+): VariantSummary {
+  const qm = v.quality_metrics ?? {}
+  const scoreCard: VariantScoreCard = {
+    overall_score:          qm.overall_score            ?? 0,
+    score_faculty_load:     qm.faculty_workload_balance_score ?? -1,
+    score_room_utilization: qm.room_utilization_score   ?? -1,
+    score_student_gaps:     qm.student_compactness_score ?? -1,
+    total_conflicts:        qm.total_conflicts           ?? qm.hard_constraint_violations ?? 0,
+    soft_violation_count:   qm.soft_constraint_violations ?? 0,
+    optimization_label:     v.optimization_priority?.replace(/_/g, ' ') ?? 'Balanced',
+    is_recommended:         isRecommended,
+  }
+  return {
+    id:              v.id,
+    job_id:          v.job_id,
+    variant_number:  v.variant_number,
+    organization_id: v.organization_id,
+    timetable_entries: [],   // not needed for card display
+    statistics: {
+      total_classes: (v.statistics as Record<string, number>)?.total_classes ?? 0,
+      total_conflicts: qm.total_conflicts ?? (v.statistics as Record<string, number>)?.total_conflicts ?? 0,
+    },
+    quality_metrics: scoreCard,
+    generated_at:    v.generated_at,
+  }
 }
 
-// Thin labelled metric bar
-function MetricBar({ label, value }: { label: string; value: number }) {
-  const pct = Math.min(Math.max(value ?? 0, 0), 100)
-  const barColor = pct >= 80 ? 'var(--color-success)' : pct >= 60 ? 'var(--color-warning)' : 'var(--color-danger)'
-  return (
-    <div className="space-y-0.5">
-      <div className="flex justify-between text-xs">
-        <span style={{ color: 'var(--color-text-muted)' }}>{label}</span>
-        <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>{pct.toFixed(0)}%</span>
-      </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg-surface-3)' }}>
-        <div
-          className="h-full rounded-full transition-all duration-500 [width:var(--pct)]"
-          aria-label={`${label}: ${pct.toFixed(0)}%`}
-          style={{ '--pct': `${pct}%`, background: barColor } as React.CSSProperties}
-        />
-      </div>
-    </div>
-  )
+// ── Adapter: TimetableEntry → TimetableSlotDetailed (for SlotDetailPanel) ─────
+function toSlotDetailed(e: TimetableEntry, day: number): TimetableSlotDetailed {
+  const timeKey = e.start_time && e.end_time
+    ? `${e.start_time}-${e.end_time}`
+    : e.time_slot
+  return {
+    day,
+    time_slot:           timeKey,
+    subject_code:        e.subject_code        ?? '',
+    subject_name:        e.subject_name        ?? e.subject_code ?? '',
+    faculty_id:          e.faculty_id          ?? '',
+    faculty_name:        e.faculty_name        ?? 'Unknown',
+    room_number:         e.room_number         ?? '',
+    batch_name:          e.batch_name          ?? '',
+    department_id:       e.department_id       ?? '',
+    year:                undefined,
+    section:             undefined,
+    has_conflict:        false,
+    conflict_description: undefined,
+    enrolled_count:      undefined,
+    room_capacity:       undefined,
+  } as unknown as TimetableSlotDetailed
 }
 
 // ---------------------------------------------------------------------------
@@ -284,6 +289,8 @@ export default function TimetableReviewPage() {
   const [activeVariant, setActiveVariant] = useState<TimetableVariant | null>(null)
   const [activeDay, setActiveDay] = useState<number | 'all'>('all')
   const [departmentFilter, setDepartmentFilter] = useState<string>('all')
+  // SlotDetailPanel state — open on cell click
+  const [selectedSlot, setSelectedSlot] = useState<TimetableSlotDetailed | null>(null)
 
   // Re-attach observer whenever the active variant changes (including null → first variant).
   // rootMargin 400px means the grid starts building before it even enters the viewport.
@@ -711,6 +718,7 @@ export default function TimetableReviewPage() {
                               const accent = subjectPaletteMap.get(key) ?? SUBJECT_PALETTES[0].accent
                               // Hex alpha: 18 = ~10% for tint background
                               const bgTint = `${accent}18`
+                              const slotDetailed = toSlotDetailed(entry, di)
                               return (
                                 <div
                                   key={idx}
@@ -718,7 +726,10 @@ export default function TimetableReviewPage() {
                                   style={{
                                     borderLeft: `3px solid ${accent}`,
                                     background: bgTint,
+                                    cursor: 'pointer',
                                   }}
+                                  onClick={() => setSelectedSlot(slotDetailed)}
+                                  title="Click for details"
                                 >
                                   <div className="px-2 pt-1.5 pb-1.5 space-y-0.5">
                                     {/* Subject code — accent coloured, tight */}
@@ -806,13 +817,50 @@ export default function TimetableReviewPage() {
     )
   }
 
+  // Best variant = highest overall score
+  const bestVariantId = variants.reduce<string | null>((best, v) => {
+    if (!best) return v.id
+    const prev = variants.find(x => x.id === best)
+    return (v.quality_metrics?.overall_score ?? 0) > (prev?.quality_metrics?.overall_score ?? 0)
+      ? v.id : best
+  }, null)
+
+  // ── Memoised adapters ───────────────────────────────────────────────────────
+  const variantSummaries = useMemo(
+    () => variants.map(v => toVariantSummary(v, v.id === bestVariantId)),
+    [variants, bestVariantId],
+  )
+
+  const departmentOptions = useMemo((): DepartmentOption[] => {
+    const seen = new Set<string>()
+    const opts: DepartmentOption[] = []
+    ;(activeVariant?.timetable_entries ?? []).forEach(e => {
+      if (e.department_id && !seen.has(e.department_id)) {
+        seen.add(e.department_id)
+        opts.push({ id: e.department_id, name: e.department_id, code: e.department_id })
+      }
+    })
+    return opts
+  }, [activeVariant?.timetable_entries])
+
   // Block the full page ONLY while workflow metadata + variant list are loading.
   // Entries for the grid load in the background and show an inline skeleton.
   if (loadingMeta) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4" style={{ minHeight: '60vh' }}>
-        <GoogleSpinner size={56} className="mx-auto" />
-        <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Loading timetable variants…</p>
+      <div className="space-y-6 py-2">
+        {/* Page title skeleton */}
+        <div className="space-y-2">
+          <Skeleton style={{ height: '20px', width: '220px' }} />
+          <Skeleton style={{ height: '14px', width: '320px' }} />
+        </div>
+        {/* Variant cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <VariantCardSkeleton />
+          <VariantCardSkeleton />
+          <VariantCardSkeleton />
+        </div>
+        {/* Timetable grid skeleton */}
+        <TimetableGridSkeleton />
       </div>
     )
   }
@@ -830,24 +878,11 @@ export default function TimetableReviewPage() {
             <p className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>Failed to Load</p>
             <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>{error}</p>
           </div>
-          <button
-            onClick={() => router.push('/admin/timetables')}
-            className="btn-primary text-sm"
-          >
-            ← Back to Timetables
-          </button>
+
         </div>
       </div>
     )
   }
-
-  // Best variant = highest overall score
-  const bestVariantId = variants.reduce<string | null>((best, v) => {
-    if (!best) return v.id
-    const prev = variants.find(x => x.id === best)
-    return (v.quality_metrics?.overall_score ?? 0) > (prev?.quality_metrics?.overall_score ?? 0)
-      ? v.id : best
-  }, null)
 
   const statusConfig: Record<string, { label: string; badge: string }> = {
     approved:       { label: 'Approved',       badge: 'badge badge-success' },
@@ -872,20 +907,6 @@ export default function TimetableReviewPage() {
       {/* ── Page Header ── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <nav className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>
-              <button
-                onClick={() => router.push('/admin/timetables')}
-                className="hover:underline transition-colors"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                Timetables
-              </button>
-              <span>/</span>
-              <span style={{ color: 'var(--color-text-secondary)' }}>Review Variants</span>
-            </nav>
-            <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
-              Timetable Review
-            </h1>
             <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
               {workflow?.department_id && <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{workflow.department_id}</span>}
               {workflow?.semester && <span> · Semester {workflow.semester}</span>}
@@ -897,15 +918,7 @@ export default function TimetableReviewPage() {
             <span className={statusInfo.badge}>
               {statusInfo.label}
             </span>
-            <button
-              onClick={() => router.push('/admin/timetables')}
-              className="btn-secondary flex items-center gap-1.5 text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back
-            </button>
+          
             {workflow?.status === 'draft' && (
               <>
                 <button
@@ -933,145 +946,28 @@ export default function TimetableReviewPage() {
           </div>
         </div>
 
-        {/* ── Variant Cards ── */}
+        {/* ── Variant Cards — powered by VariantGrid ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
               Generated Variants
-              <span className="ml-2 badge badge-neutral font-normal">
-                {variants.length}
-              </span>
+              <span className="ml-2 badge badge-neutral font-normal">{variants.length}</span>
             </h2>
-            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Click a variant to preview its timetable below</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {variants.map(variant => {
-              const isActive = activeVariant?.id === variant.id
-              const isBest = variant.id === bestVariantId && variants.length > 1
-              const isLoading = loadingVariantId === variant.id
-              const qm = variant.quality_metrics ?? {}
-              const st = variant.statistics ?? {}
-              return (
-                <div
-                  key={variant.id}
-                  onClick={() => loadVariantEntries(variant)}
-                  className={`relative flex flex-col rounded-xl border-2 cursor-pointer transition-all duration-200 overflow-hidden`}
-                  style={isActive
-                    ? { borderColor: 'var(--color-primary)', background: 'var(--color-bg-surface)', boxShadow: 'var(--shadow-card)' }
-                    : { borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }
-                  }
-                >
-                  {/* Top accent stripe */}
-                  <div
-                    className="h-1 w-full"
-                    style={{ background: isActive ? 'var(--color-primary)' : 'var(--color-border)' }}
-                  />
-
-                  {/* Badges row */}
-                  <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                    <div className="flex items-center gap-1.5">
-                      {isActive && (
-                        <span className="badge badge-info flex items-center gap-1">
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          Viewing
-                        </span>
-                      )}
-                      {isBest && (
-                        <span className="badge badge-warning">
-                          ★ Best
-                        </span>
-                      )}
-                      {variant.is_selected && (
-                        <span className="badge badge-success">
-                          Selected
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="px-4 pb-4 flex-1 flex flex-col">
-                    {/* Score ring + title */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>
-                        <ScoreRing score={qm.overall_score ?? 0} size={64} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-base leading-tight" style={{ color: 'var(--color-text-primary)' }}>
-                          Variant {variant.variant_number}
-                        </p>
-                        <p className="text-xs mt-0.5 capitalize" style={{ color: 'var(--color-text-muted)' }}>
-                          {variant.optimization_priority?.replace(/_/g, ' ') ?? 'Standard'}
-                        </p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <span
-                            className="text-xs font-semibold"
-                            style={{ color: (qm.total_conflicts ?? 0) === 0 ? 'var(--color-success-text)' : 'var(--color-danger-text)' }}
-                          >
-                            {(qm.total_conflicts ?? 0) === 0 ? '✓ No conflicts' : `${qm.total_conflicts} conflict${qm.total_conflicts === 1 ? '' : 's'}`}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Metric bars */}
-                    <div className="space-y-2 mb-4">
-                      <MetricBar label="Room Utilization" value={qm.room_utilization_score ?? 0} />
-                      <MetricBar label="Faculty Balance" value={qm.faculty_workload_balance_score ?? 0} />
-                      <MetricBar label="Compactness" value={qm.student_compactness_score ?? 0} />
-                    </div>
-
-                    {/* Quick stats */}
-                    <div className="grid grid-cols-3 gap-1.5 text-center mb-3">
-                      {[
-                        { label: 'Classes', val: st.total_classes ?? 0 },
-                        { label: 'Hours', val: st.total_hours ?? 0 },
-                        { label: 'Subjects', val: st.unique_subjects ?? 0 },
-                      ].map(({ label, val }) => (
-                        <div key={label} className="rounded-lg py-1.5 px-1" style={{ background: 'var(--color-bg-surface-2)' }}>
-                          <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
-                          <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>{val}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Action button */}
-                    <div className="mt-auto flex gap-2">
-                      {isLoading ? (
-                        <div className="flex-1 flex items-center justify-center py-2">
-                          <GoogleSpinner size={16} />
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={e => { e.stopPropagation(); loadVariantEntries(variant) }}
-                            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors`}
-                            style={isActive
-                              ? { background: 'var(--color-primary-subtle)', color: 'var(--color-primary)' }
-                              : { background: 'var(--color-bg-surface-2)', color: 'var(--color-text-secondary)' }
-                            }
-                          >
-                            {isActive ? 'Currently Viewing' : 'View Timetable'}
-                          </button>
-                          {!variant.is_selected && (
-                            <button
-                              onClick={e => { e.stopPropagation(); handleVariantSelect(variant.id) }}
-                              disabled={actionLoading}
-                              className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50"
-                            >
-                              Select
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <VariantGrid
+            variants={variantSummaries}
+            jobStatus={workflow?.status ?? 'draft'}
+            loading={loadingMeta}
+            onViewDetails={(id) => {
+              const v = variants.find(x => x.id === id)
+              if (v) loadVariantEntries(v)
+            }}
+            onCompare={(ids) =>
+              router.push(`/admin/timetables/compare/${workflowId}?a=${ids[0]}&b=${ids[1]}`)
+            }
+            onPickVariant={(id) => handleVariantSelect(id)}
+          />
         </section>
 
         {/* ── Timetable View ── */}
@@ -1096,54 +992,15 @@ export default function TimetableReviewPage() {
                   Generated {new Date(activeVariant.generated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Department filter */}
-                {uniqueDepartments.length > 1 && (
-                  <select
-                    value={departmentFilter}
-                    onChange={async e => {
-                      const deptId = e.target.value
-                      setDepartmentFilter(deptId)
-                      if (deptId !== 'all' && activeVariant) {
-                        try {
-                          const res = await authenticatedFetch(
-                            `${API_BASE}/timetable/variants/${activeVariant.id}/department_view/?department_id=${deptId}&job_id=${activeVariant.job_id}`,
-                            { credentials: 'include' }
-                          )
-                          if (res.ok) {
-                            const data = await res.json()
-                            setActiveVariant({ ...activeVariant, timetable_entries: data.timetable_entries })
-                          }
-                        } catch (err) {
-                          console.error('Failed to fetch department view:', err)
-                        }
-                      } else {
-                        const full = variants.find(v => v.id === activeVariant.id)
-                        if (full) setActiveVariant(full)
-                      }
-                    }}
-                    aria-label="Filter by department"
-                    className="input-primary px-2.5 py-1.5 text-xs"
-                  >
-                    <option value="all">All Departments</option>
-                    {uniqueDepartments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                )}
-
-                {/* Print button */}
-                <button
-                  onClick={() => window.print()}
-                  className="btn-secondary flex items-center gap-1.5 text-xs print:hidden"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                  Print
-                </button>
-              </div>
+              <button
+                onClick={() => window.print()}
+                className="btn-secondary flex items-center gap-1.5 text-xs print:hidden"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+              </button>
             </div>
 
             {/* Statistics strip */}
@@ -1184,12 +1041,59 @@ export default function TimetableReviewPage() {
               ))}
             </div>
 
-            {/* Grid — only built once the section enters the viewport */}
-            <div className="px-4 py-4 sm:px-5 sm:py-5">
-              {gridInView
-                ? renderTimetableGrid(activeVariant)
-                : <TimetableGridSkeleton days={5} slots={8} />
-              }
+            {/* Body: DepartmentTree sidebar + grid */}
+            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+
+              {/* ─ Left: department filter sidebar ─ */}
+              {departmentOptions.length > 0 && (
+                <div style={{
+                  width: 220,
+                  flexShrink: 0,
+                  borderRight: '1px solid var(--color-border)',
+                  padding: '12px 8px',
+                  alignSelf: 'stretch',
+                }}>
+                  <DepartmentTree
+                    departments={departmentOptions}
+                    selectedDeptId={departmentFilter}
+                    onSelect={async (deptId) => {
+                      setDepartmentFilter(deptId)
+                      setSelectedSlot(null)
+                      if (deptId !== 'all' && activeVariant) {
+                        try {
+                          const res = await authenticatedFetch(
+                            `${API_BASE}/timetable/variants/${activeVariant.id}/department_view/?department_id=${deptId}&job_id=${activeVariant.job_id}`,
+                            { credentials: 'include' },
+                          )
+                          if (res.ok) {
+                            const data = await res.json()
+                            setActiveVariant({ ...activeVariant, timetable_entries: data.timetable_entries })
+                          }
+                        } catch { /* keep current entries */ }
+                      } else {
+                        const cached = entryCache.current.get(activeVariant!.id)
+                        if (cached) setActiveVariant({ ...activeVariant!, timetable_entries: cached })
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* ─ Right: grid + SlotDetailPanel ─ */}
+              <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+                <div className="px-4 py-4 sm:px-5 sm:py-5">
+                  {gridInView
+                    ? renderTimetableGrid(activeVariant)
+                    : <TimetableGridSkeleton days={5} slots={8} />
+                  }
+                </div>
+
+                {/* Slide-in detail panel */}
+                <SlotDetailPanel
+                  slot={selectedSlot}
+                  onClose={() => setSelectedSlot(null)}
+                />
+              </div>
             </div>
           </section>
         )}

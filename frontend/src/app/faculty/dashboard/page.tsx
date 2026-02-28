@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { GoogleSpinner } from '@/components/ui/GoogleSpinner'
+import { ListSkeleton } from '@/components/LoadingSkeletons'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import TimetableGrid from '@/components/shared/TimetableGrid'
@@ -221,10 +221,7 @@ export default function FacultyDashboard() {
           </div>
 
           {loading ? (
-            <div className="text-center py-8">
-              <GoogleSpinner size={48} className="mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">Loading your subjects...</p>
-            </div>
+            <ListSkeleton items={3} />
           ) : mySubjects.length > 0 ? (
             <div className="space-y-3">
               {mySubjects.map(subject => (

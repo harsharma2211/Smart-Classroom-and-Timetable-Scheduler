@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { GoogleSpinner } from '@/components/ui/GoogleSpinner'
+import { AppShellSkeleton } from '@/components/shell/AppShellSkeleton'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import AppShell from '@/components/shell/AppShell'
@@ -24,11 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [user, isLoading, router])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f9f9f9] dark:bg-[#212121]">
-        <GoogleSpinner size={48} />
-      </div>
-    )
+    return <AppShellSkeleton />
   }
 
   if (!user) {
