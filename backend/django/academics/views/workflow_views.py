@@ -4,7 +4,6 @@ Timetable Workflow API - Review and Approval System
 import logging
 
 from django.core.cache import cache
-from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -13,17 +12,53 @@ from rest_framework.response import Response
 from ..models import GenerationJob
 from core.rbac import (
     CanApproveTimetable,
-    CanManageTimetable,
     CanViewTimetable,
 )
 
 logger = logging.getLogger(__name__)
 
 
+PENDING_APPROVAL_STATUSES = ['completed', 'approved', 'rejected']
+PENDING_ONLY_STATUS = 'completed'
+
+
 class TimetableWorkflowViewSet(viewsets.ViewSet):
     """Timetable workflow management"""
     permission_classes = [IsAuthenticated, CanViewTimetable]
-    
+
+    def list(self, request):
+        """List generation jobs available for approval review."""
+        status_filter = request.query_params.get('status', '')
+        cache_key = f'workflows_list_{request.user.id}_{status_filter}'
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
+
+        qs = (
+            GenerationJob.objects
+            .only('id', 'organization_id', 'status', 'academic_year', 'semester', 'created_at')
+            .order_by('-created_at')
+        )
+        if status_filter in PENDING_APPROVAL_STATUSES:
+            qs = qs.filter(status=status_filter)
+        else:
+            qs = qs.filter(status__in=PENDING_APPROVAL_STATUSES)
+
+        items = [
+            {
+                'id': str(j.id),
+                'status': j.status,
+                'academic_year': j.academic_year or '',
+                'semester': j.semester,
+                'created_at': j.created_at.isoformat(),
+                'organization_id': str(j.organization_id),
+            }
+            for j in qs[:50]
+        ]
+        data = {'count': len(items), 'results': items}
+        cache.set(cache_key, data, 60)
+        return Response(data)
+
     def retrieve(self, request, pk=None):
         """Get workflow details by ID - FAST VERSION"""
         cache_key = f'workflow_{pk}'
@@ -65,16 +100,20 @@ class TimetableWorkflowViewSet(viewsets.ViewSet):
             job = GenerationJob.objects.get(id=pk)
             comments = request.data.get('comments', '')
             
-            # Update job status
-            job.status = 'completed'
-            job.save()
-            
-            logger.info(f"Workflow {pk} approved by user {request.user.id}")
-            
+            job.status = 'approved'
+            job.save(update_fields=['status', 'updated_at'])
+            cache.delete(f'workflow_{pk}')
+            cache.delete_pattern(f'workflows_list_*')  # Bust list caches
+
+            logger.info(
+                "Workflow approved",
+                extra={"workflow_id": str(pk), "user_id": str(request.user.id)},
+            )
             return Response({
                 'success': True,
                 'message': 'Timetable approved successfully',
-                'workflow_id': str(pk)
+                'workflow_id': str(pk),
+                'status': 'approved',
             })
         except GenerationJob.DoesNotExist:
             return Response(
@@ -95,17 +134,21 @@ class TimetableWorkflowViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Update job status
-            job.status = 'failed'
+            job.status = 'rejected'
             job.error_message = f"Rejected: {comments}"
-            job.save()
-            
-            logger.info(f"Workflow {pk} rejected by user {request.user.id}")
-            
+            job.save(update_fields=['status', 'error_message', 'updated_at'])
+            cache.delete(f'workflow_{pk}')
+            cache.delete_pattern(f'workflows_list_*')  # Bust list caches
+
+            logger.info(
+                "Workflow rejected",
+                extra={"workflow_id": str(pk), "user_id": str(request.user.id)},
+            )
             return Response({
                 'success': True,
                 'message': 'Timetable rejected',
-                'workflow_id': str(pk)
+                'workflow_id': str(pk),
+                'status': 'rejected',
             })
         except GenerationJob.DoesNotExist:
             return Response(

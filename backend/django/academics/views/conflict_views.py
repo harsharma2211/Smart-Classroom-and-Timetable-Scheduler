@@ -1,6 +1,8 @@
 """
 Conflict Detection API Views
 """
+import logging
+
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +12,8 @@ from django.core.cache import cache
 from ..models import GenerationJob
 from ..services.conflict_service import ConflictDetectionService
 from core.rbac import CanViewTimetable
+
+logger = logging.getLogger(__name__)
 
 
 class ConflictViewSet(viewsets.ViewSet):
@@ -47,13 +51,16 @@ class ConflictViewSet(viewsets.ViewSet):
             result = {
                 'job_id': str(job_id),
                 'variant_id': int(variant_id),
-                'conflicts': conflicts[:100],  # Limit to 100
+                'conflicts': conflicts[:100],
                 'summary': categorized,
-                'total_entries': len(entries)
+                'total_entries': len(entries),
             }
-            
             cache.set(cache_key, result, 600)  # 10 min
-            return Response(result)
+
+            # Acknowledged indices are user-session state — not cached with result
+            acknowledged = self._get_acknowledged(str(job_id), int(variant_id))
+            response_data = {**result, 'acknowledged_indices': acknowledged}
+            return Response(response_data)
             
         except GenerationJob.DoesNotExist:
             return Response({'error': 'Job not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -99,15 +106,52 @@ class ConflictViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['post'])
     def suggest(self, request):
-        """Get resolution suggestions for conflict"""
+        """Get resolution suggestions for a conflict object."""
         conflict = request.data.get('conflict')
-        
         if not conflict:
-            return Response({'error': 'conflict data required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {'error': 'conflict data required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         suggestions = ConflictDetectionService.get_resolution_suggestions(conflict)
-        
+        return Response({'conflict': conflict, 'suggestions': suggestions})
+
+    @action(detail=False, methods=['post'])
+    def apply(self, request):
+        """Acknowledge/dismiss a conflict by index (soft-resolution)."""
+        job_id = request.data.get('job_id')
+        variant_id = int(request.data.get('variant_id', 0))
+        conflict_index = request.data.get('conflict_index')
+
+        if not job_id or conflict_index is None:
+            return Response(
+                {'error': 'job_id and conflict_index are required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ack_key = f'acknowledged_conflicts_{job_id}_{variant_id}'
+        acknowledged: list = cache.get(ack_key) or []
+        conflict_index = int(conflict_index)
+
+        if conflict_index not in acknowledged:
+            acknowledged.append(conflict_index)
+            cache.set(ack_key, acknowledged, 86400)  # 24-hour TTL
+
+        logger.info(
+            "Conflict acknowledged",
+            extra={
+                "job_id": str(job_id),
+                "variant_id": variant_id,
+                "conflict_index": conflict_index,
+                "user_id": str(request.user.id),
+            },
+        )
         return Response({
-            'conflict': conflict,
-            'suggestions': suggestions
+            'success': True,
+            'acknowledged_index': conflict_index,
+            'total_acknowledged': len(acknowledged),
         })
+
+    def _get_acknowledged(self, job_id: str, variant_id: int) -> list:
+        """Return list of acknowledged conflict indices from cache."""
+        return cache.get(f'acknowledged_conflicts_{job_id}_{variant_id}') or []

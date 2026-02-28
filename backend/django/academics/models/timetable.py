@@ -75,6 +75,8 @@ class GenerationJob(models.Model):
             ("failed", "Failed"),
             ("cancelling", "Cancelling"),
             ("cancelled", "Cancelled"),
+            ("approved", "Approved"),
+            ("rejected", "Rejected"),
         ],
         default="pending",
     )

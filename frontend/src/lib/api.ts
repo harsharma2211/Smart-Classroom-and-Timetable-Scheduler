@@ -524,6 +524,42 @@ class ApiClient {
     });
   }
 
+  // Workflow approval review list
+  async getWorkflows(statusFilter?: string) {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set('status', statusFilter);
+    const query = params.toString() ? `?${params}` : '';
+    return this.request<any>(`/timetable/workflows/${query}`);
+  }
+
+  async approveWorkflow(id: string, comments: string) {
+    return this.request<any>(`/timetable/workflows/${id}/approve/`, {
+      method: 'POST',
+      body: JSON.stringify({ comments }),
+    });
+  }
+
+  async rejectWorkflow(id: string, comments: string) {
+    return this.request<any>(`/timetable/workflows/${id}/reject/`, {
+      method: 'POST',
+      body: JSON.stringify({ comments }),
+    });
+  }
+
+  // Conflict detection with acknowledged state
+  async getConflicts(jobId: string, variantId = 0) {
+    return this.request<any>(
+      `/conflicts/detect/?job_id=${jobId}&variant_id=${variantId}`
+    );
+  }
+
+  async applySuggestion(jobId: string, variantId: number, conflictIndex: number) {
+    return this.request<any>('/conflicts/apply/', {
+      method: 'POST',
+      body: JSON.stringify({ job_id: jobId, variant_id: variantId, conflict_index: conflictIndex }),
+    });
+  }
+
   async getGenerationResult(jobId: string) {
     return this.request<any>(`/generation-jobs/${jobId}/result/`);
   }

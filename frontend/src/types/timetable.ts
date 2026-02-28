@@ -235,6 +235,52 @@ export interface ApprovalRequest {
   review_type: 'approve' | 'request_changes' | 'reject'
 }
 
+// ============================================
+// WORKFLOW LIST (Approvals page)
+// ============================================
+
+export type WorkflowStatus = 'completed' | 'approved' | 'rejected'
+
+export interface WorkflowListItem {
+  id: string
+  status: WorkflowStatus
+  academic_year: string
+  semester: number | null
+  created_at: string
+  organization_id: string
+}
+
+// ============================================
+// CONFLICT DETECTION RESPONSE
+// ============================================
+
+export interface ConflictItem {
+  type: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  day: string
+  time_slot: string
+  message: string
+  suggestion: string
+  faculty?: string
+  room?: string
+  courses?: string[]
+}
+
+export interface ConflictDetectionResult {
+  job_id: string
+  variant_id: number
+  conflicts: ConflictItem[]
+  summary: {
+    total: number
+    critical: number
+    high: number
+    medium: number
+    low: number
+  }
+  total_entries: number
+  acknowledged_indices: number[]
+}
+
 export interface ApprovalResponse {
   success: boolean
   workflow_id: string
