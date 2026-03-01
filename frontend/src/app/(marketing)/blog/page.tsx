@@ -92,7 +92,7 @@ export default function BlogIndexPage() {
             <div className="mk-hover-card" style={{ background: 'white', borderRadius: '20px', overflow: 'hidden' }}>
               {/* Featured image placeholder */}
               <div style={{ height: '240px', background: 'linear-gradient(135deg, var(--cadence-navy) 0%, var(--cadence-teal) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: '14px', fontWeight: 600, color: 'rgb(255, 255, 255)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                   Featured Article
                 </span>
               </div>

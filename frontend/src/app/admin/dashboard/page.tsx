@@ -136,12 +136,6 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-4 sm:space-y-6">
 
-      {/* ── Page Header ───────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-normal tracking-tight [color:var(--color-text-primary)]">Dashboard</h1>
-
-      </div>
-
       {/* ── Stats Grid ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
 

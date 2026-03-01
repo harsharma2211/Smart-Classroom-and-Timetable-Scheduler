@@ -1,11 +1,12 @@
-'use client'
+﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import apiClient from '@/lib/api'
 import { useToast } from '@/components/Toast'
-import { TableSkeleton, TableRowsSkeleton } from '@/components/LoadingSkeletons'
-import Pagination from '@/components/Pagination'
 import AddEditBuildingModal from './components/AddEditBuildingModal'
+import PageHeader from '@/components/shared/PageHeader'
+import DataTable, { Column } from '@/components/shared/DataTable'
+import { Building2 } from 'lucide-react'
 
 interface Building {
   id: number
@@ -16,50 +17,43 @@ interface Building {
   total_floors?: number
 }
 
+const COLUMNS: Column<Record<string, unknown>>[] = [
+  { key: 'building_code', header: 'Code', width: '120px' },
+  { key: 'building_name', header: 'Name' },
+  { key: 'address', header: 'Address', render: v => (v as string) || '—' },
+  { key: 'total_floors', header: 'Floors', width: '80px', render: v => (v as number) || '—' },
+]
+
 export default function BuildingsPage() {
   const { showToast } = useToast()
   const [buildings, setBuildings] = useState<Building[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isTableLoading, setIsTableLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-
   const [showModal, setShowModal] = useState(false)
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null)
-  const [isDeleting, setIsDeleting] = useState<number | null>(null)
-
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
-  const [itemsPerPage, setItemsPerPage] = useState(25)
+  const itemsPerPage = 25
 
-  // Debounced server-side search — resets to page 1
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentPage(1)
-      fetchBuildings()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [searchTerm])
-
-  // Fetch on page / page-size change
-  useEffect(() => {
-    fetchBuildings()
-  }, [currentPage, itemsPerPage])
-
-  const handleAdd = () => { setEditingBuilding(null); setShowModal(true) }
-  const handleEdit = (b: Building) => { setEditingBuilding(b); setShowModal(true) }
-
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Delete "${name}"?\n\nThis action cannot be undone.`)) return
-    setIsDeleting(id)
+  const fetchBuildings = useCallback(async (page = currentPage) => {
+    setIsLoading(true)
     try {
-      const res = await apiClient.deleteBuilding(String(id))
-      if (res.error) showToast('error', res.error)
-      else { showToast('success', `"${name}" deleted`); await fetchBuildings() }
-    } catch { showToast('error', 'Failed to delete building') }
-    finally { setIsDeleting(null) }
-  }
+      const response = await apiClient.getBuildings(page, itemsPerPage, searchTerm)
+      if (response.error) showToast('error', response.error)
+      else if (response.data) {
+        setBuildings(response.data.results || response.data)
+        setTotalCount(response.data.count || 0)
+      }
+    } catch { showToast('error', 'Failed to load buildings') }
+    finally { setIsLoading(false) }
+  }, [currentPage, itemsPerPage, searchTerm]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const t = setTimeout(() => { setCurrentPage(1); fetchBuildings(1) }, 400)
+    return () => clearTimeout(t)
+  }, [searchTerm]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { fetchBuildings() }, [currentPage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async (data: any) => {
     const res = editingBuilding
@@ -71,136 +65,38 @@ export default function BuildingsPage() {
     await fetchBuildings()
   }
 
-  const fetchBuildings = async () => {
-    if (currentPage > 1) setIsTableLoading(true)
-    else setIsLoading(true)
-    setError(null)
-
-    try {
-      const response = await apiClient.getBuildings(currentPage, itemsPerPage, searchTerm)
-      if (response.error) {
-        setError(response.error)
-        showToast('error', response.error)
-      } else if (response.data) {
-        const data = response.data
-        setBuildings(data.results || data)
-        setTotalCount(data.count || 0)
-        if (data.count) setTotalPages(Math.ceil(data.count / itemsPerPage))
-      }
-    } catch {
-      showToast('error', 'Failed to load buildings')
-    } finally {
-      setIsLoading(false)
-      setIsTableLoading(false)
+  const handleBulkDelete = async (ids: string[]) => {
+    for (const id of ids) {
+      const res = await apiClient.deleteBuilding(id)
+      if (res.error) { showToast('error', res.error); break }
     }
+    showToast('success', `${ids.length} building${ids.length > 1 ? 's' : ''} deleted`)
+    await fetchBuildings()
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-
-      {/* ── Page Header ───────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-baseline gap-2.5">
-          <h1 className="text-2xl font-normal tracking-tight [color:var(--color-text-primary)]">Buildings</h1>
-          {!isLoading && totalCount > 0 && (
-            <span className="text-sm tabular-nums [color:var(--color-text-muted)]">{totalCount.toLocaleString()}</span>
-          )}
-        </div>
-        <button className="btn-primary w-full sm:w-auto" onClick={handleAdd}>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Building
-        </button>
-      </div>
-
-      <div className="card">
-        <div className="card-header">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
-              </svg>
-            </span>
-            <input
-              type="text"
-              placeholder="Search buildings…"
-              className="input-primary pl-10 w-full"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {isLoading && <TableSkeleton rows={5} columns={5} />}
-
-        {!isLoading && buildings.length === 0 && (
-          <div className="text-center py-16">
-            <svg className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No buildings found</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              {buildings.length === 0 ? 'No buildings have been added yet.' : 'Try adjusting your search.'}
-            </p>
-          </div>
-        )}
-
-        {!isLoading && buildings.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead className="table-header">
-                <tr>
-                  <th className="table-header-cell">Code</th>
-                  <th className="table-header-cell">Name</th>
-                  <th className="table-header-cell">Address</th>
-                  <th className="table-header-cell">Floors</th>
-                  <th className="table-header-cell">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isTableLoading
-                  ? <TableRowsSkeleton rows={itemsPerPage} columns={5} />
-                  : buildings.map(building => (
-                  <tr key={building.id} className="table-row">
-                    <td className="table-cell font-medium">{building.building_code}</td>
-                    <td className="table-cell">{building.building_name}</td>
-                    <td className="table-cell">{building.address || '-'}</td>
-                    <td className="table-cell">{building.total_floors || '-'}</td>
-                    <td className="table-cell">
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="btn-edit"
-                          onClick={() => handleEdit(building)}
-                          disabled={isTableLoading || isDeleting !== null}
-                        >Edit</button>
-                        <button
-                          className="btn-delete"
-                          onClick={() => handleDelete(building.id, building.building_name)}
-                          disabled={isTableLoading || isDeleting === building.id}
-                        >{isDeleting === building.id ? '…' : 'Delete'}</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {totalPages > 1 && (
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalCount={totalCount}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={setCurrentPage}
-                  onItemsPerPageChange={setItemsPerPage}
-                  showItemsPerPage={true}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Buildings"
+        parentLabel="Academic"
+        count={totalCount}
+        loading={isLoading}
+        primaryAction={{ label: 'Add Building', onClick: () => { setEditingBuilding(null); setShowModal(true) } }}
+      />
+      <DataTable
+        columns={COLUMNS}
+        data={buildings as unknown as Record<string, unknown>[]}
+        loading={isLoading}
+        totalCount={totalCount}
+        page={currentPage}
+        pageSize={itemsPerPage}
+        onPageChange={setCurrentPage}
+        selectable
+        avatarColumn={row => (row as unknown as Building).building_name}
+        onDelete={handleBulkDelete}
+        onEdit={row => { setEditingBuilding(row as unknown as Building); setShowModal(true) }}
+        emptyState={{ icon: Building2, title: 'No buildings found', description: 'Add your first building to get started.' }}
+      />
       <AddEditBuildingModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}

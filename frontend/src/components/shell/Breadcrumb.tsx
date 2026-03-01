@@ -59,42 +59,42 @@ const ROUTES: Array<{ pattern: RegExp; crumbs: () => BreadcrumbItem[] }> = [
   {
     pattern: /^\/admin\/academic\/schools/,
     crumbs: () => [
-      { label: 'Academic', href: '/admin/academic/schools' },
+      { label: 'Academic', href: '/admin/academic' },
       { label: 'Schools' },
     ],
   },
   {
     pattern: /^\/admin\/academic\/departments/,
     crumbs: () => [
-      { label: 'Academic', href: '/admin/academic/schools' },
+      { label: 'Academic', href: '/admin/academic' },
       { label: 'Departments' },
     ],
   },
   {
     pattern: /^\/admin\/academic\/courses/,
     crumbs: () => [
-      { label: 'Academic', href: '/admin/academic/schools' },
+      { label: 'Academic', href: '/admin/academic' },
       { label: 'Courses' },
     ],
   },
   {
     pattern: /^\/admin\/academic\/rooms/,
     crumbs: () => [
-      { label: 'Academic', href: '/admin/academic/schools' },
+      { label: 'Academic', href: '/admin/academic' },
       { label: 'Rooms' },
     ],
   },
   {
     pattern: /^\/admin\/academic\/buildings/,
     crumbs: () => [
-      { label: 'Academic', href: '/admin/academic/schools' },
+      { label: 'Academic', href: '/admin/academic' },
       { label: 'Buildings' },
     ],
   },
   {
     pattern: /^\/admin\/academic\/programs/,
     crumbs: () => [
-      { label: 'Academic', href: '/admin/academic/schools' },
+      { label: 'Academic', href: '/admin/academic' },
       { label: 'Programs' },
     ],
   },
@@ -124,18 +124,41 @@ const ROUTES: Array<{ pattern: RegExp; crumbs: () => BreadcrumbItem[] }> = [
   { pattern: /^\/student\/timetable/, crumbs: () => [{ label: 'My Timetable' }] },
 ]
 
+// ─── Pages that render their own PageHeader (title + count) ──────────────────
+// Breadcrumb is suppressed on these routes to avoid a duplicate h1.
+const SUPPRESS_ROUTES: RegExp[] = [
+  /^\/admin\/academic\/schools/,
+  /^\/admin\/academic\/departments/,
+  /^\/admin\/academic\/programs/,
+  /^\/admin\/academic\/buildings/,
+  /^\/admin\/academic\/rooms/,
+  /^\/admin\/academic\/courses/,
+  /^\/admin\/admins/,
+  /^\/admin\/faculty/,
+  /^\/admin\/students/,
+]
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Breadcrumb() {
   const pathname = usePathname()
+
+  // Suppress on pages that have their own PageHeader
+  if (SUPPRESS_ROUTES.some((r) => r.test(pathname))) return null
 
   const match = ROUTES.find((r) => r.pattern.test(pathname))
   if (!match) return null
 
   const crumbs = match.crumbs()
 
-  // Single-item means we're at a top-level page — the page's own <h1> is the title.
-  if (crumbs.length <= 1) return null
+  // Single-item: no parent path — render as a standalone page title.
+  if (crumbs.length === 1) {
+    return (
+      <h1 className="text-2xl font-normal tracking-tight [color:var(--color-text-primary)] mb-4 md:mb-5 select-none">
+        {crumbs[0].label}
+      </h1>
+    )
+  }
 
   return (
     <nav

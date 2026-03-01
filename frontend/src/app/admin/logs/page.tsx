@@ -93,7 +93,7 @@ export default function LogsPage() {
               <input
                 id="log-search"
                 placeholder="Search logs..."
-                className="input-primary pl-10 w-full"
+                className="input-search"
               />
             </div>
           </div>

@@ -399,13 +399,11 @@ export default function AdminTimetablesPage() {
   return (
     <div className="space-y-5">
 
-      {/* ── 1. Page heading + Generate button ───────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-normal tracking-tight [color:var(--color-text-primary)]">
-            Timetables
-          </h1>
-        </div>
+      {/* ── 1. Sub-header: count + generate button ────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm tabular-nums [color:var(--color-text-muted)]">
+          {!loading && counts.total > 0 ? `${counts.total.toLocaleString()} timetable${counts.total === 1 ? '' : 's'}` : ''}
+        </span>
         <Link href="/admin/timetables/new" className="btn-primary shrink-0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -494,23 +492,21 @@ export default function AdminTimetablesPage() {
       {/* ── 4. Timetables content ────────────────────────────────────────── */}
       <div>
         {/* Section header + view toggle */}
-        <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-semibold [color:var(--color-text-primary)]">
             Department Timetables
           </span>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="flex gap-1">
             {(['grid', 'list'] as const).map(mode => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                style={{
-                  height: 28, padding: '0 12px', fontSize: 12, fontWeight: 500,
-                  borderRadius: 6, cursor: 'pointer', border: '1px solid',
-                  borderColor: viewMode === mode ? 'var(--color-primary)' : 'var(--color-border)',
-                  background: viewMode === mode ? 'var(--color-primary-subtle)' : 'transparent',
-                  color: viewMode === mode ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                  textTransform: 'capitalize',
-                }}
+                className={[
+                  'h-7 px-3 text-xs font-medium rounded-md border transition-colors capitalize',
+                  viewMode === mode
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-subtle)] [color:var(--color-primary)]'
+                    : 'border-[var(--color-border)] bg-transparent [color:var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)]',
+                ].join(' ')}
               >
                 {mode}
               </button>
@@ -520,14 +516,12 @@ export default function AdminTimetablesPage() {
 
         {/* Groups */}
         {Object.keys(groupedTimetables).length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 12px' }}>
+          <div className="card text-center py-12">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3 [color:var(--color-text-muted)]">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
             </svg>
-            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>No timetables yet</p>
-            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', margin: '0 0 16px' }}>
-              Generate your first timetable to get started.
-            </p>
+            <p className="text-sm font-semibold [color:var(--color-text-primary)] mb-1">No timetables yet</p>
+            <p className="text-xs [color:var(--color-text-secondary)] mb-4">Generate your first timetable to get started.</p>
             <Link href="/admin/timetables/new" className="btn-primary">Generate Timetable</Link>
           </div>
         ) : (
@@ -535,7 +529,6 @@ export default function AdminTimetablesPage() {
             {Object.entries(groupedTimetables)
               .sort(([a], [b]) => b.localeCompare(a))
               .map(([semesterKey, items]) => {
-                // Apply active tab filter
                 const filteredItems = activeTab === 'all'
                   ? items
                   : items.filter(t => t.status === activeTab)
@@ -543,20 +536,16 @@ export default function AdminTimetablesPage() {
                 const [academicYear, semester] = semesterKey.split('-')
                 return (
                   <div key={semesterKey} className="card">
-                    {/* Group header */}
-                    <div className="card-header" style={{ paddingBottom: 12 }}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="card-title">{academicYear} · Semester {semester}</h3>
-                          <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                            {filteredItems.length} course{filteredItems.length !== 1 ? 's' : ''} &nbsp;·&nbsp;
-                            {filteredItems.filter(t => t.status === 'approved').length} approved
-                          </p>
-                        </div>
+                    <div className="card-header pb-3">
+                      <div>
+                        <h3 className="card-title">{academicYear} · Semester {semester}</h3>
+                        <p className="card-description">
+                          {filteredItems.length} course{filteredItems.length !== 1 ? 's' : ''} &nbsp;·&nbsp;
+                          {filteredItems.filter(t => t.status === 'approved').length} approved
+                        </p>
                       </div>
                     </div>
 
-                    {/* Items — grid or list */}
                     {viewMode === 'grid' ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {filteredItems
@@ -565,40 +554,36 @@ export default function AdminTimetablesPage() {
                             const isRunning = runningJobs.some(j => j.job_id === t.id)
                             const href = isRunning ? `/admin/timetables/status/${t.id}` : `/admin/timetables/${t.id}/review`
                             return (
-                              <Link key={t.id} href={href} style={{
-                                display: 'block', padding: '14px 16px',
-                                background: 'var(--color-bg-page)', border: '1px solid var(--color-border)',
-                                borderRadius: 'var(--radius-md)', textDecoration: 'none',
-                                transition: 'border-color 120ms, background 120ms',
-                              }}
-                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-primary-subtle)' }}
-                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-page)' }}
+                              <Link
+                                key={t.id}
+                                href={href}
+                                className="block p-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-page)] no-underline transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-subtle)]"
                               >
-                                <div className="flex items-start justify-between gap-2" style={{ marginBottom: 10 }}>
-                                  <div style={{ minWidth: 0 }}>
-                                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                                <div className="flex items-start justify-between gap-2 mb-2.5">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold truncate [color:var(--color-text-primary)] m-0">
                                       {t.department}
                                     </p>
-                                    <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
+                                    <p className="text-xs [color:var(--color-text-secondary)] mt-0.5 m-0">
                                       {t.batch ?? 'All Students'}
                                     </p>
                                   </div>
                                   <StatusChip status={t.status} isRunning={isRunning} />
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid var(--color-border)', paddingTop: 10 }}>
+                                <div className="flex flex-col gap-1.5 border-t border-[var(--color-border)] pt-2.5">
                                   <div className="flex items-center justify-between">
-                                    <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Updated</span>
-                                    <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t.lastUpdated}</span>
+                                    <span className="text-xs [color:var(--color-text-muted)]">Updated</span>
+                                    <span className="text-xs [color:var(--color-text-secondary)]">{t.lastUpdated}</span>
                                   </div>
                                   {t.score != null && (
                                     <div className="flex items-center justify-between">
-                                      <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Quality score</span>
-                                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-success-text)' }}>{t.score}/10</span>
+                                      <span className="text-xs [color:var(--color-text-muted)]">Quality score</span>
+                                      <span className="text-xs font-semibold [color:var(--color-success-text)]">{t.score}/10</span>
                                     </div>
                                   )}
                                   <div className="flex items-center justify-between">
-                                    <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Conflicts</span>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: t.conflicts > 0 ? 'var(--color-danger-text)' : 'var(--color-success-text)' }}>
+                                    <span className="text-xs [color:var(--color-text-muted)]">Conflicts</span>
+                                    <span className={`text-xs font-semibold ${t.conflicts > 0 ? '[color:var(--color-danger-text)]' : '[color:var(--color-success-text)]'}`}>
                                       {t.conflicts}
                                     </span>
                                   </div>
@@ -608,42 +593,44 @@ export default function AdminTimetablesPage() {
                           })}
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {filteredItems
-                          .sort((a, b) => (a.department ?? '').localeCompare(b.department ?? ''))
-                          .map(t => {
-                            const isRunning = runningJobs.some(j => j.job_id === t.id)
-                            const href = isRunning ? `/admin/timetables/status/${t.id}` : `/admin/timetables/${t.id}/review`
-                            return (
-                              <Link key={t.id} href={href} style={{
-                                display: 'flex', alignItems: 'center', gap: 12,
-                                padding: '10px 4px', textDecoration: 'none',
-                                borderBottom: '1px solid var(--color-border)',
-                                transition: 'background 100ms',
-                              }}
-                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-primary-subtle)' }}
-                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-                              >
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                                    {t.department}
-                                  </span>
-                                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t.batch ?? 'All Students'}</span>
-                                </div>
-                                <StatusChip status={t.status} isRunning={isRunning} />
-                                {t.score != null && (
-                                  <span style={{ fontSize: 12, color: 'var(--color-success-text)', fontWeight: 600, flexShrink: 0 }}>
-                                    {t.score}/10
-                                  </span>
-                                )}
-                                <span style={{ fontSize: 12, color: t.conflicts > 0 ? 'var(--color-danger-text)' : 'var(--color-success-text)', fontWeight: 600, flexShrink: 0, minWidth: 48, textAlign: 'right' }}>
-                                  {t.conflicts} conflict{t.conflicts !== 1 ? 's' : ''}
-                                </span>
-                                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>{t.lastUpdated}</span>
-                              </Link>
-                            )
-                          })}
-                      </div>
+                      <table className="table">
+                        <thead className="table-header">
+                          <tr>
+                            <th className="table-header-cell">Department</th>
+                            <th className="table-header-cell">Batch</th>
+                            <th className="table-header-cell">Status</th>
+                            <th className="table-header-cell">Score</th>
+                            <th className="table-header-cell">Conflicts</th>
+                            <th className="table-header-cell">Updated</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredItems
+                            .sort((a, b) => (a.department ?? '').localeCompare(b.department ?? ''))
+                            .map(t => {
+                              const isRunning = runningJobs.some(j => j.job_id === t.id)
+                              const href = isRunning ? `/admin/timetables/status/${t.id}` : `/admin/timetables/${t.id}/review`
+                              return (
+                                <tr key={t.id} className="table-row cursor-pointer" onClick={() => router.push(href)}>
+                                  <td className="table-cell font-medium">{t.department}</td>
+                                  <td className="table-cell">{t.batch ?? 'All Students'}</td>
+                                  <td className="table-cell"><StatusChip status={t.status} isRunning={isRunning} /></td>
+                                  <td className="table-cell">
+                                    {t.score != null ? (
+                                      <span className="text-xs font-semibold [color:var(--color-success-text)]">{t.score}/10</span>
+                                    ) : '—'}
+                                  </td>
+                                  <td className="table-cell">
+                                    <span className={`text-xs font-semibold ${t.conflicts > 0 ? '[color:var(--color-danger-text)]' : '[color:var(--color-success-text)]'}`}>
+                                      {t.conflicts}
+                                    </span>
+                                  </td>
+                                  <td className="table-cell text-xs [color:var(--color-text-muted)]">{t.lastUpdated}</td>
+                                </tr>
+                              )
+                            })}
+                        </tbody>
+                      </table>
                     )}
                   </div>
                 )
@@ -654,23 +641,21 @@ export default function AdminTimetablesPage() {
 
       {/* ── 5. Pagination ───────────────────────────────────────────────── */}
       {totalCount > 20 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1 || loading}
-            className="btn-secondary"
-            style={{ height: 32, padding: '0 12px', fontSize: 13 }}
+            className="btn-secondary h-8 px-3 text-sm"
           >
             ← Prev
           </button>
-          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', padding: '0 4px' }}>
+          <span className="text-sm [color:var(--color-text-secondary)] px-1">
             Page {currentPage} of {Math.ceil(totalCount / 20)}
           </span>
           <button
             onClick={() => setCurrentPage(p => p + 1)}
             disabled={currentPage >= Math.ceil(totalCount / 20) || loading}
-            className="btn-secondary"
-            style={{ height: 32, padding: '0 12px', fontSize: 13 }}
+            className="btn-secondary h-8 px-3 text-sm"
           >
             Next →
           </button>

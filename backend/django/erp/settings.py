@@ -415,13 +415,34 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_CONNECTION_RETRY = True
-CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
-CELERY_BROKER_POOL_LIMIT = 50
-CELERY_BROKER_HEARTBEAT = 30
-CELERY_BROKER_CONNECTION_TIMEOUT = 30
+CELERY_BROKER_CONNECTION_MAX_RETRIES = None   # retry forever on disconnect
+CELERY_BROKER_POOL_LIMIT = 3                  # Upstash free tier: keep connections low
+CELERY_BROKER_HEARTBEAT = None                # disable AMQP heartbeat (not supported on Redis transport)
+CELERY_BROKER_CONNECTION_TIMEOUT = 10
+# Suppress CPendingDeprecationWarning about cancelling tasks on connection loss
+CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = False
+
+# Transport options — keepalive + retry so Upstash idle-disconnect auto-recovers
+_BROKER_SOCKET_KEEPALIVE_OPTIONS = {
+    4: 60,   # TCP_KEEPIDLE  — start keepalive probes after 60 s idle
+    5: 10,   # TCP_KEEPINTVL — send a probe every 10 s
+    6: 3,    # TCP_KEEPCNT   — give up after 3 failed probes
+} if os.name != 'nt' else {}  # keepalive socket options not supported on Windows
+
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'socket_timeout': 30,
+    'socket_connect_timeout': 10,
+    'retry_on_timeout': True,
+    'socket_keepalive': True,
+    'socket_keepalive_options': _BROKER_SOCKET_KEEPALIVE_OPTIONS,
+    # Reconnect backoff: start at 0.1 s, cap at 30 s
+    'interval_start': 0.1,
+    'interval_step': 0.5,
+    'interval_max': 30,
+}
 CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
     'socket_timeout': 30,
-    'socket_connect_timeout': 30,
+    'socket_connect_timeout': 10,
     'retry_on_timeout': True,
 }
 

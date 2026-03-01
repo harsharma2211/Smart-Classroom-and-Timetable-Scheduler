@@ -1,3 +1,5 @@
+import { Pencil, Trash2 } from 'lucide-react'
+
 interface User {
   id: number
   name: string
@@ -32,11 +34,9 @@ export default function UserTable({ users }: UserTableProps) {
                 <span className="badge badge-neutral">{user.role}</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">{user.department || 'N/A'}</span>
               </div>
-              <div className="flex gap-1">
-                <button className="btn-edit">Edit</button>
-                <button className="btn-delete">
-                  Delete
-                </button>
+              <div className="flex items-center gap-1">
+                <button className="btn-icon" aria-label="Edit" title="Edit"><Pencil size={15} /></button>
+                <button className="btn-icon btn-icon-danger" aria-label="Delete" title="Delete"><Trash2 size={15} /></button>
               </div>
             </div>
           </div>
@@ -74,13 +74,9 @@ export default function UserTable({ users }: UserTableProps) {
                   <span className="badge badge-success text-xs">{user.status}</span>
                 </td>
                 <td className="table-cell">
-                  <div className="flex gap-1 sm:gap-2">
-                    <button className="btn-edit">
-                      Edit
-                    </button>
-                    <button className="btn-delete">
-                      Del
-                    </button>
+                  <div className="flex items-center gap-1">
+                    <button className="btn-icon" aria-label="Edit" title="Edit"><Pencil size={15} /></button>
+                    <button className="btn-icon btn-icon-danger" aria-label="Delete" title="Delete"><Trash2 size={15} /></button>
                   </div>
                 </td>
               </tr>

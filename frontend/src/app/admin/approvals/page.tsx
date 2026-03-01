@@ -264,16 +264,11 @@ export default function AdminApprovals() {
     <div className="space-y-4 sm:space-y-6">
 
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-normal tracking-tight [color:var(--color-text-primary)]">
-            Approvals
-          </h1>
-        </div>
+      <div className="flex items-center justify-end">
         <button
           onClick={fetchWorkflows}
           disabled={loading}
-          className="btn-secondary self-start sm:self-auto flex items-center gap-2 text-sm"
+          className="btn-secondary flex items-center gap-2 text-sm"
         >
           {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
           Refresh

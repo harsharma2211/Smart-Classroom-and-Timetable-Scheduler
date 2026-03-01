@@ -102,8 +102,8 @@
   /* Sidebar */
   --color-sidebar-bg:           #FFFFFF;
   --color-sidebar-border:       #DADCE0;
-  --color-sidebar-active-bg:    #E8F0FE;
-  --color-sidebar-active-text:  #1A73E8;
+  --color-sidebar-active-bg:    #c2e7ff;
+  --color-sidebar-active-text:  #001d35;
   --color-sidebar-icon:         #5F6368;
 
   /* Header */
@@ -140,6 +140,41 @@
   /* Spinner — exact Google Material values */
   --spinner-color: #1A73E8;
   --spinner-track: #E8F0FE;
+
+  /* ── Row / List (Google Contacts spec) ── */
+  --row-height:          52px;
+  --row-header-height:   40px;
+  --row-hover-bg:        #f1f3f4;
+  --row-selected-bg:     #c2e7ff;
+  --row-border:          #f1f3f4;
+
+  /* ── Column headers ── */
+  --col-header-color:    #5f6368;
+  --col-header-size:     13px;
+  --col-header-weight:   400;
+
+  /* ── Page title ── */
+  --text-page-title:     22px;
+
+  /* ── Avatar ── */
+  --avatar-size-sm:      32px;
+  --avatar-size-md:      36px;
+  --avatar-size-lg:      40px;
+
+  /* ── Bulk action bar ── */
+  --bulk-bar-bg:         #ffffff;
+  --bulk-bar-border:     #e0e0e0;
+  --bulk-selected-text:  #202124;
+
+  /* ── Sidebar nav tokens ── */
+  --nav-item-height:     40px;
+  --nav-item-radius:     24px;
+  --nav-active-bg:       #c2e7ff;
+  --nav-active-color:    #001d35;
+  --nav-hover-bg:        #e8f0fe;
+  --nav-badge-color:     #5f6368;
+  --nav-color:           #444746;
+  --checkbox-color:      #1a73e8;
 }
 
 .dark {
@@ -190,6 +225,22 @@
   /* Spinner — exact Google Material values for dark surfaces */
   --spinner-color: #8AB4F8;
   --spinner-track: #3C4043;
+
+  /* ── Row / dark ── */
+  --row-hover-bg:        #35363a;
+  --row-selected-bg:     #004a77;
+  --row-border:          #3c3f42;
+
+  /* ── Bulk bar / dark ── */
+  --bulk-bar-bg:         #292a2d;
+  --bulk-bar-border:     #3c4043;
+  --bulk-selected-text:  #e8eaed;
+
+  /* ── Sidebar nav / dark ── */
+  --nav-active-bg:       #1C2B4A;
+  --nav-active-color:    #e3e3e3;
+  --nav-hover-bg:        #1a2640;
+  --nav-color:           #bdc1c6;
 
   --shadow-card:     0 1px 2px rgba(0,0,0,0.30), 0 1px 3px 1px rgba(0,0,0,0.25);
   --shadow-dropdown: 0 1px 2px rgba(0,0,0,0.40), 0 2px 6px 2px rgba(0,0,0,0.30);
@@ -722,7 +773,10 @@
     border-left: 3px solid var(--color-primary);
   }
 
-  /* ── Tables ──────────────────────────────────────────────────────────────── */
+  /* ── Tables (Material 3 Data Table spec) ────────────────────────────────── */
+  /* Header row: 52 px, 12 sp medium, on-surface-variant, no uppercase        */
+  /* Data row:   52 px, 14 sp regular, row dividers only                       */
+  /* Hover:      on-surface 8 % state-layer (spec §10.2)                      */
   .table {
     width: 100%;
     border-collapse: collapse;
@@ -730,31 +784,77 @@
   }
 
   .table-header {
-    background: var(--color-bg-surface-2);
+    background: transparent;
     border-bottom: 1px solid var(--color-border);
   }
 
   .table-header-cell {
-    padding: 10px 16px;
+    padding: 0 16px;
+    height: 52px;
     font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-weight: 500;
     color: var(--color-text-secondary);
     text-align: left;
+    vertical-align: middle;
+    white-space: nowrap;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .table-cell {
-    padding: 12px 16px;
+    padding: 0 16px;
+    height: 52px;
     font-size: 14px;
     color: var(--color-text-primary);
     border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
   }
 
-  /* Instant background — no transition on hover bg (enterprise tables) */
-  .table-row:hover .table-cell {
+  /* Material 3 state layer — on-surface 8 % */
+  .table-row:hover .table-cell { background: rgba(0, 0, 0, 0.04); }
+  .dark .table-row:hover .table-cell { background: rgba(255, 255, 255, 0.06); }
+
+  /* ── Table toolbar: pill search bar (Material 3 Search) ─────────────────── */
+  .input-search {
+    width: 100%;
+    height: 40px;
+    padding: 0 16px 0 40px;
     background: var(--color-bg-surface-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    font-size: 14px;
+    color: var(--color-text-primary);
+    transition: background 150ms, border-color 150ms, box-shadow 150ms;
   }
+  .input-search::placeholder { color: var(--color-text-muted); }
+  .input-search:hover { background: var(--color-bg-surface-3); }
+  .input-search:focus {
+    outline: none;
+    background: var(--color-bg-surface);
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 3px var(--color-primary-subtle);
+  }
+
+  /* ── Icon-only row-action buttons (Material 3 standard icon button) ───────── */
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background 120ms, color 120ms;
+    flex-shrink: 0;
+  }
+  .btn-icon:hover  { background: var(--color-bg-surface-2); color: var(--color-text-primary); }
+  .btn-icon:active { background: var(--color-bg-surface-3); }
+  .btn-icon:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+  .btn-icon:disabled { opacity: 0.38; cursor: not-allowed; }
+  .btn-icon-danger:hover { background: var(--color-danger-subtle); color: var(--color-danger-text); }
 
   /* ── Forms ───────────────────────────────────────────────────────────────── */
   .form-group {
@@ -814,6 +914,35 @@
     background-size: 800px 100%;
     animation: shimmer 1.6s infinite linear;
     border-radius: var(--radius-sm);
+  }
+
+  /* ── Bulk action toolbar ────────────────────────────────────────────────── */
+  .bulk-toolbar {
+    display: flex;
+    align-items: center;
+    height: var(--row-header-height);
+    background: var(--bulk-bar-bg);
+    border-bottom: 1px solid var(--bulk-bar-border);
+    padding: 0 8px;
+    gap: 8px;
+    animation: bulk-fade-in 150ms ease;
+  }
+
+  @keyframes bulk-fade-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Selected table row ─────────────────────────────────────────────────── */
+  .table-row-selected td {
+    background-color: var(--row-selected-bg) !important;
+    border-top: none !important;
+    border-bottom: none !important;
+  }
+
+  /* Adjacent selected rows: no visible gap between them */
+  .table-row-selected + .table-row-selected td {
+    border-top: 1px solid rgba(194,231,255,0.6) !important;
   }
 
   /* ── Interactive Elements ────────────────────────────────────────────────── */
