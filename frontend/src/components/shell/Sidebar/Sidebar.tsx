@@ -36,7 +36,7 @@ export default function Sidebar({
         className={[
           'fixed left-0 top-0 h-full z-[45] flex flex-col',
           'bg-[#f6f8fc] dark:bg-[#111111]',
-          'pt-[68px] md:pt-[76px]',
+          'pt-[56px] md:pt-[64px]',
           'transition-[width,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]',
           mobileOpen ? 'translate-x-0 w-[284px]' : '-translate-x-full w-[284px] md:translate-x-0',
           !mobileOpen && (sidebarOpen ? 'md:w-[284px]' : 'md:w-[72px]'),

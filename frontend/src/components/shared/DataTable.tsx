@@ -368,8 +368,10 @@ export default function DataTable<T extends Record<string, unknown>>({
   const [densityOpen, setDensityOpen] = useState(false)
   const [colOrderOpen, setColOrderOpen] = useState(false)
   const [selectMenuOpen, setSelectMenuOpen] = useState(false)
+  const [rowMenuId, setRowMenuId] = useState<string | null>(null)
   const toolMenuRef = useRef<HTMLDivElement>(null)
   const selectMenuRef = useRef<HTMLDivElement>(null)
+  const rowMenuRef = useRef<HTMLDivElement>(null)
 
   // Sync displayColumns when columns prop reference changes (first render only / parent refresh)
   useEffect(() => { setDisplayColumns(columns) }, [columns]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -395,6 +397,17 @@ export default function DataTable<T extends Record<string, unknown>>({
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [selectMenuOpen])
+
+  // Close row context menu on outside click
+  useEffect(() => {
+    if (!rowMenuId) return
+    const handler = (e: MouseEvent) => {
+      if (rowMenuRef.current && !rowMenuRef.current.contains(e.target as Node))
+        setRowMenuId(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [rowMenuId])
 
   /* ── row heights by density ── */
   const rowH = density === 'compact' ? '36px' : 'var(--row-height)'
@@ -432,6 +445,22 @@ export default function DataTable<T extends Record<string, unknown>>({
       setDeleting(false)
       setConfirmOpen(false)
     }
+  }
+
+  /* ── single-row export ── */
+  const exportSingleRow = (row: T) => {
+    const headers = displayColumns.map(c => c.header).join(',')
+    const values = displayColumns.map(col => {
+      const val = row[col.key]
+      const str = val == null ? '' : String(val)
+      return str.includes(',') ? `"${str}"` : str
+    }).join(',')
+    const csv = [headers, values].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'row-export.csv'; a.click()
+    URL.revokeObjectURL(url)
   }
 
   /* ── print / export ── */
@@ -849,31 +878,64 @@ export default function DataTable<T extends Record<string, unknown>>({
                         {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '')}
                       </td>
                     ))}
-                    {/* Row actions (edit / delete) — appear on hover */}
+                    {/* Row ⋮ context menu */}
                     {(onEdit || onDelete) && (
-                      <td className="pr-2 text-right" style={{ width: '104px', borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }} onClick={e => e.stopPropagation()}>
-                        <span className="inline-flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-75">
-                          {onEdit && (
-                            <button
-                              onClick={() => onEdit(row)}
-                              className="p-1.5 rounded-full hover:bg-[var(--row-hover-bg)]"
-                              style={{ color: 'var(--color-text-secondary)' }}
-                              title="Edit"
+                      <td className="pr-2 text-right" style={{ width: '48px', borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }} onClick={e => e.stopPropagation()}>
+                        <div className="relative inline-flex" ref={rowMenuId === id ? rowMenuRef : undefined}>
+                          <button
+                            onClick={() => setRowMenuId(prev => prev === id ? null : id)}
+                            className="p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-75 hover:bg-[rgba(68,71,70,0.08)] dark:hover:bg-[rgba(255,255,255,0.08)]"
+                            style={{ color: 'var(--color-text-secondary)', opacity: rowMenuId === id ? 1 : undefined }}
+                            title="More actions"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                          {rowMenuId === id && (
+                            <div
+                              className="absolute right-0 top-full z-50 py-1"
+                              style={{
+                                minWidth: '148px',
+                                borderRadius: '12px',
+                                background: 'white',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.16)',
+                                border: '1px solid rgba(0,0,0,0.08)',
+                                marginTop: '4px',
+                              }}
                             >
-                              <Pencil size={15} />
-                            </button>
+                              {onEdit && (
+                                <button
+                                  onClick={() => { onEdit(row); setRowMenuId(null) }}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[rgba(0,0,0,0.04)]"
+                                  style={{ color: '#1f1f1f' }}
+                                >
+                                  <Pencil size={15} style={{ color: '#5f6368' }} />
+                                  Edit
+                                </button>
+                              )}
+                              <button
+                                onClick={() => { exportSingleRow(row); setRowMenuId(null) }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[rgba(0,0,0,0.04)]"
+                                style={{ color: '#1f1f1f' }}
+                              >
+                                <Upload size={15} style={{ color: '#5f6368' }} />
+                                Export row
+                              </button>
+                              {onDelete && (
+                                <>
+                                  <div style={{ height: '1px', background: 'rgba(0,0,0,0.08)', margin: '4px 0' }} />
+                                  <button
+                                    onClick={() => { setSelectedIds(new Set([id])); setConfirmOpen(true); setRowMenuId(null) }}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[rgba(0,0,0,0.04)]"
+                                    style={{ color: 'var(--color-danger)' }}
+                                  >
+                                    <Trash2 size={15} />
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           )}
-                          {onDelete && (
-                            <button
-                              onClick={() => { setSelectedIds(new Set([id])); setConfirmOpen(true) }}
-                              className="p-1.5 rounded-full hover:bg-[var(--color-danger-subtle)]"
-                              style={{ color: 'var(--color-danger)' }}
-                              title="Delete"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          )}
-                        </span>
+                        </div>
                       </td>
                     )}
                   </tr>

@@ -65,7 +65,8 @@ export function useProgress(
     const connect = () => {
       try {
         eventSourceRef.current?.close()
-        const url         = \/generation/stream/\/        const eventSource = new EventSource(url, { withCredentials: true })
+        const url         = `${DJANGO_API_BASE}/generation/stream/${jobId}`
+        const eventSource = new EventSource(url, { withCredentials: true })
         eventSourceRef.current = eventSource
 
         eventSource.addEventListener('connected', () => {

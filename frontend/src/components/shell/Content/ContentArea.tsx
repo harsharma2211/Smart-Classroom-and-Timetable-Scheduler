@@ -34,15 +34,25 @@ export default function ContentArea({ sidebarOpen, children }: ContentAreaProps)
     : 'md:ml-[284px]'
 
   return (
-    <main className={[marginCls, 'mt-[68px] md:mt-[76px]'].join(' ')}>
+    <main
+      className={[
+        marginCls,
+        'fixed top-[56px] md:top-[64px] right-0 bottom-0 left-0',
+        'flex flex-col',
+      ].join(' ')}
+    >
+      {/* White card — exact margins + 24px radius matching computed styles */}
       <div
         className={[
-          'mr-2 md:mr-3 mb-2 md:mb-3',
-          'min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)]',
-          'rounded-2xl',
+          'content-scroll',
+          'flex-1 min-h-0',
+          'flex flex-col',
+          'mt-4 mb-4 ml-1 mr-1',   /* 16px top/bottom, 4px left/right */
+          'overflow-y-auto overflow-x-hidden',
+          'rounded-[24px]',         /* 24px — matches M3 large shape */
           'bg-white dark:bg-[#1e1e1e]',
           'p-3 md:p-6',
-          '[&>*]:rounded-2xl',
+          '[&>*]:rounded-[24px]',
         ].join(' ')}
       >
         <Breadcrumb />

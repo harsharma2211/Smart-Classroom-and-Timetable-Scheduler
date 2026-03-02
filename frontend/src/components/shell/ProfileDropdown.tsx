@@ -123,21 +123,12 @@ export default function ProfileDropdown({
       {/* ── Scrollable cards section — max-height 280px ── */}
       <div className="profile-scroll overflow-y-auto px-3 pb-3 flex flex-col gap-2">
 
-        {/* Role badge */}
-        <div className="bg-white dark:bg-[#2d2f31] rounded-[20px] px-4 py-3 flex items-center gap-2">
-          <ShieldCheck size={16} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
-          <span className="text-[13px] text-[#5f6368] dark:text-[#9aa0a6] flex-1">Logged in as</span>
-          <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#c2e7ff] dark:bg-[#1C2B4A] text-[#001d35] dark:text-[#8AB4F8] uppercase tracking-wider">
-            {rolePill}
-          </span>
-        </div>
-
         {/* Profile | Sign out */}
-        <div className="flex rounded-full border border-[#c5ccd8] dark:border-[#5f6368] bg-white dark:bg-[#2d2f31] overflow-hidden">
+        <div className="flex rounded-full border border-[#c5ccd8] dark:border-[#5f6368] bg-white dark:bg-[#2d2f31] overflow-hidden min-h-[52px]">
           <Link
             href={`/${role}/profile`}
             onClick={onClose}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#eaf0f6] dark:hover:bg-[#3c4043] transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-4 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#eaf0f6] dark:hover:bg-[#3c4043] transition-colors"
           >
             <UserIcon size={15} className="shrink-0" />
             Profile
@@ -145,7 +136,7 @@ export default function ProfileDropdown({
           <div className="w-px my-2 bg-[#c5ccd8] dark:bg-[#5f6368]" />
           <button
             onClick={onSignOut}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#eaf0f6] dark:hover:bg-[#3c4043] transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-4 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#eaf0f6] dark:hover:bg-[#3c4043] transition-colors"
           >
             <LogOut size={15} className="shrink-0" />
             Sign out
@@ -157,7 +148,7 @@ export default function ProfileDropdown({
           <Link
             href={`/${role}/settings`}
             onClick={onClose}
-            className="flex items-center gap-3 px-4 py-3.5 text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#dde5ef] dark:hover:bg-[#3c4043] transition-colors"
+            className="flex items-center gap-3 px-4 h-[52px] text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#dde5ef] dark:hover:bg-[#3c4043] transition-colors"
           >
             <Settings size={18} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
             <span className="flex-1">Settings</span>
@@ -165,7 +156,7 @@ export default function ProfileDropdown({
           <div className="h-px mx-4 bg-[#dde2eb] dark:bg-[#3c4043]" />
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="w-full flex items-center gap-3 px-4 py-3.5 text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#dde5ef] dark:hover:bg-[#3c4043] transition-colors text-left"
+            className="w-full flex items-center gap-3 px-4 h-[52px] text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#dde5ef] dark:hover:bg-[#3c4043] transition-colors text-left"
           >
             {mounted && resolvedTheme === 'dark'
               ? <Sun  size={18} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
@@ -179,12 +170,12 @@ export default function ProfileDropdown({
 
         {/* Language | Help */}
         <div className="bg-white dark:bg-[#2d2f31] rounded-[20px] overflow-hidden flex">
-          <button className="flex-1 flex items-center gap-2 px-4 py-3.5 text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#dde5ef] dark:hover:bg-[#3c4043] transition-colors">
+          <button className="flex-1 flex items-center gap-2 px-4 h-[52px] text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#dde5ef] dark:hover:bg-[#3c4043] transition-colors">
             <Globe      size={17} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
             <span>Language</span>
           </button>
           <div className="w-px my-3 bg-[#dde2eb] dark:bg-[#3c4043]" />
-          <button className="flex-1 flex items-center gap-2 px-4 py-3.5 text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#dde5ef] dark:hover:bg-[#3c4043] transition-colors">
+          <button className="flex-1 flex items-center gap-2 px-4 h-[52px] text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#dde5ef] dark:hover:bg-[#3c4043] transition-colors">
             <HelpCircle size={17} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
             <span>Help</span>
           </button>

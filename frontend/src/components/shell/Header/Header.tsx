@@ -73,7 +73,7 @@ export default function Header({
         <button
           onClick={onMenuClick}
           aria-label="Toggle sidebar"
-          className="w-10 h-10 flex items-center justify-center rounded-full text-[#444746] dark:text-[#bdc1c6] hover:bg-[#f1f3f4] dark:hover:bg-[#303134] transition-colors"
+          className="w-10 h-10 flex items-center justify-center rounded-full text-[#444746] dark:text-[#bdc1c6] hover:bg-[rgba(68,71,70,0.08)] dark:hover:bg-[rgba(255,255,255,0.08)] transition-colors"
         >
           <svg
             width="20"
@@ -109,13 +109,13 @@ export default function Header({
       <SearchBar open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* ── Zone 3: Right actions ─────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 ml-auto md:ml-0 shrink-0 pr-2 md:pr-4">
+      <div className="flex items-center gap-1 ml-auto md:ml-0 shrink-0 pr-2 md:pr-4">
 
         {/* Mobile search icon (triggers SearchBar overlay) */}
         <button
           onClick={() => setSearchOpen(true)}
           aria-label="Search"
-          className="md:hidden w-10 h-10 flex items-center justify-center rounded-full text-[#444746] dark:text-[#bdc1c6] hover:bg-[#f1f3f4] dark:hover:bg-[#303134] transition-colors"
+          className="md:hidden w-10 h-10 flex items-center justify-center rounded-full text-[#444746] dark:text-[#bdc1c6] hover:bg-[rgba(68,71,70,0.08)] dark:hover:bg-[rgba(255,255,255,0.08)] transition-colors"
         >
           <Search size={20} />
         </button>
@@ -126,7 +126,7 @@ export default function Header({
         {/* Bell */}
         <button
           aria-label="Notifications"
-          className="relative w-10 h-10 flex items-center justify-center rounded-full text-[#444746] dark:text-[#bdc1c6] hover:bg-[#f1f3f4] dark:hover:bg-[#303134] transition-colors"
+          className="relative w-10 h-10 flex items-center justify-center rounded-full text-[#444746] dark:text-[#bdc1c6] hover:bg-[rgba(68,71,70,0.08)] dark:hover:bg-[rgba(255,255,255,0.08)] transition-colors"
         >
           <Bell size={20} />
           {pendingApprovals > 0 && (
@@ -134,8 +134,8 @@ export default function Header({
           )}
         </button>
 
-        {/* Avatar + profile dropdown */}
-        <div className="relative ml-0.5" ref={profileRef}>
+        {/* Avatar + profile dropdown — separated to far right */}
+        <div className="relative ml-2 pl-2 border-l border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.08)]" ref={profileRef}>
           <button
             onClick={() => setProfileOpen((v) => !v)}
             aria-label="Account menu"

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -12,9 +12,14 @@
   --brand-navy:       #1558D6;
   --brand-gradient:   linear-gradient(135deg, #1558D6 0%, #1A73E8 100%);
 
-  /* Typography */
-  --font-heading: 'Poppins', -apple-system, sans-serif;
-  --font-body:    'Inter', -apple-system, sans-serif;
+  /* Typography — M3 typeface scale */
+  --font-display:  'Google Sans', Roboto, sans-serif;   /* display / headlines */
+  --font-heading:  'Google Sans', Roboto, sans-serif;   /* title large/medium/small */
+  --font-body:     'Roboto', sans-serif;                /* body large/medium/small */
+  --font-label:    'Roboto', sans-serif;                /* label large/medium/small */
+  /* Inter/Poppins kept for marketing mk- classes only */
+  --font-marketing-heading: 'Poppins', sans-serif;
+  --font-marketing-body:    'Inter', sans-serif;
 
   --text-xs:   12px;
   --text-sm:   14px;
@@ -60,7 +65,7 @@
 
 :root {
   /* Surface */
-  --color-bg-page:        #F8F9FA;
+  --color-bg-page:        #f6f8fc;
   --color-bg-surface:     #FFFFFF;
   --color-bg-surface-2:   #F1F3F4;
   --color-bg-surface-3:   #E8EAED;
@@ -119,12 +124,20 @@
   --shadow-dropdown: 0 1px 2px rgba(60,64,67,0.15), 0 2px 6px 2px rgba(60,64,67,0.10);
   --shadow-modal:    0 2px 6px rgba(60,64,67,0.15), 0 4px 24px rgba(60,64,67,0.12);
 
-  /* Radius */
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   16px;
-  --radius-pill: 9999px;
+  /* Radius — Material 3 shape scale */
+  --radius-none:        0px;
+  --radius-extra-small: 4px;    /* chips, small menus */
+  --radius-small:       8px;    /* text fields, small cards */
+  --radius-medium:      12px;   /* cards, dialogs */
+  --radius-large:       16px;   /* navigation drawer, bottom sheet */
+  --radius-extra-large: 28px;   /* FAB, large dialogs */
+  --radius-full:        9999px; /* buttons, badges */
+  /* Aliases — zero migration effort */
+  --radius-sm:   var(--radius-extra-small);
+  --radius-md:   var(--radius-small);
+  --radius-lg:   var(--radius-medium);
+  --radius-xl:   var(--radius-large);
+  --radius-pill: var(--radius-full);
 
   /* Spacing (8pt grid) */
   --space-1:  4px;
@@ -170,6 +183,19 @@
   --nav-badge-color:     #5f6368;
   --nav-color:           #444746;
   --checkbox-color:      #1a73e8;
+
+  /* M3 State Layer Opacities */
+  --state-hover:              0.08;  /* 8% */
+  --state-pressed:            0.12;  /* 12% */
+  --state-focused:            0.12;  /* 12% */
+  --state-dragged:            0.16;  /* 16% */
+  --state-disabled:           0.38;  /* 38% on-surface for content */
+  --state-disabled-container: 0.12;  /* 12% on-surface for container */
+
+  /* M3 RGB split tokens for rgba() state layers */
+  --color-primary-rgb: 26, 115, 232;
+  --color-danger-rgb:  197, 34, 31;
+  --color-success-rgb: 24, 128, 56;
 }
 
 /* ── Ellipsis truncation utility ── */
@@ -300,14 +326,14 @@
   html {
     @apply scroll-smooth;
     scrollbar-gutter: stable;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Roboto', sans-serif;
   }
 
   body {
     background-color: var(--color-bg-page);
     color: var(--color-text-primary);
     @apply min-h-screen w-full antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Roboto', sans-serif;
   }
 
   main {
@@ -317,8 +343,7 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
     color: var(--color-text-primary);
-    /* Product UI uses Inter only — Poppins is marketing-only (mk-h1/mk-h2 classes) */
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Google Sans', Roboto, sans-serif;
   }
 
   h1 { @apply text-2xl sm:text-3xl lg:text-4xl leading-tight; }
@@ -375,15 +400,16 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 36px;
-    padding: 0 16px;
+    height: 40px;
+    padding: 0 24px;
     background-color: var(--color-primary);
     color: var(--color-text-inverse);
     border: none;
     border-radius: 20px;
     font-size: 14px;
     font-weight: 500;
-    letter-spacing: 0.01em;
+    font-family: var(--font-label);
+    letter-spacing: 0.00625em;
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 100ms, opacity 150ms;
@@ -398,14 +424,16 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 36px;
-    padding: 0 16px;
+    height: 40px;
+    padding: 0 24px;
     background-color: var(--color-bg-surface);
     color: var(--color-primary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     font-size: 14px;
     font-weight: 500;
+    font-family: var(--font-label);
+    letter-spacing: 0.00625em;
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 100ms, border-color 100ms, opacity 150ms;
@@ -413,6 +441,122 @@
   .btn-secondary:hover { background-color: var(--color-primary-subtle); }
   .btn-secondary:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
   .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── M3 Elevated button — surface container + shadow, no fill ─────────────── */
+  .btn-elevated {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 24px;
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-label);
+    letter-spacing: 0.00625em;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: box-shadow 200ms, background-color 200ms;
+  }
+  .btn-elevated:hover {
+    box-shadow: var(--shadow-md);
+    background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-primary-subtle));
+  }
+  .btn-elevated:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+  .btn-elevated:disabled { opacity: 0.38; cursor: not-allowed; }
+
+  /* ── M3 Tonal button — secondary container fill ───────────────────────────── */
+  .btn-tonal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 24px;
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-label);
+    letter-spacing: 0.00625em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 200ms;
+  }
+  .btn-tonal:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-primary-subtle));
+  }
+  .btn-tonal:active {
+    background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-primary-subtle));
+  }
+  .btn-tonal:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+  .btn-tonal:disabled { opacity: 0.38; cursor: not-allowed; }
+
+  /* ── M3 Outlined button ────────────────────────────────────────────────────── */
+  .btn-outlined {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 24px;
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-label);
+    letter-spacing: 0.00625em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 200ms, border-color 200ms;
+  }
+  .btn-outlined:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    border-color: var(--color-primary);
+  }
+  .btn-outlined:active {
+    background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  }
+  .btn-outlined:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+  .btn-outlined:disabled { opacity: 0.38; cursor: not-allowed; }
+
+  /* ── M3 Text button ─────────────────────────────────────────────────────────── */
+  .btn-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 12px;
+    background: transparent;
+    color: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-label);
+    letter-spacing: 0.00625em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 200ms;
+  }
+  .btn-text:hover    { background-color: rgba(var(--color-primary-rgb), 0.08); }
+  .btn-text:active   { background-color: rgba(var(--color-primary-rgb), 0.12); }
+  .btn-text:focus-visible {
+    background-color: rgba(var(--color-primary-rgb), 0.12);
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+  .btn-text:disabled { opacity: 0.38; cursor: not-allowed; }
 
   .btn-success {
     display: inline-flex;
@@ -815,8 +959,8 @@
   }
 
   /* Material 3 state layer — on-surface 8 % */
-  .table-row:hover .table-cell { background: rgba(0, 0, 0, 0.04); }
-  .dark .table-row:hover .table-cell { background: rgba(255, 255, 255, 0.06); }
+  .table-row:hover .table-cell { background: rgba(0, 0, 0, 0.08); }
+  .dark .table-row:hover .table-cell { background: rgba(255, 255, 255, 0.08); }
 
   /* ── Table toolbar: pill search bar (Material 3 Search) ─────────────────── */
   .input-search {
@@ -1613,3 +1757,31 @@
     transform: translateY(0);
   }
 }
+
+/* ── Content area scrollbar — broad pill, no arrow buttons ── */
+.content-scroll::-webkit-scrollbar         { width: 14px; }
+.content-scroll::-webkit-scrollbar-button  { display: none; height: 0; }
+.content-scroll::-webkit-scrollbar-track   {
+  background: transparent;
+  margin-top:    24px;   /* matches rounded-[24px] corner radius */
+  margin-bottom: 24px;
+}
+.content-scroll::-webkit-scrollbar-thumb   {
+  background-color: rgba(0, 0, 0, 0.28);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  min-height: 40px;
+}
+.dark .content-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+.content-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.45);
+}
+.dark .content-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.40);
+}
+/* Firefox */
+.content-scroll { scrollbar-width: auto; scrollbar-color: rgba(0,0,0,0.28) transparent; }
+.dark .content-scroll { scrollbar-color: rgba(255,255,255,0.25) transparent; }
