@@ -79,7 +79,15 @@ class GenerationJobViewSet(viewsets.ModelViewSet):
         pk = kwargs.get('pk') or self.kwargs.get('pk')
         cache_key = f'generation_job_meta_{pk}'
 
-        cached = cache.get(cache_key)
+        try:
+            cached = cache.get(cache_key)
+        except Exception as cache_err:
+            logger.warning(
+                "[JOB RETRIEVE] Cache read failed, proceeding without cache",
+                extra={"job_id": pk, "error": str(cache_err)},
+            )
+            cached = None
+
         if cached:
             resp = Response(cached)
             resp['Cache-Control'] = 'private, max-age=3600'
@@ -92,7 +100,13 @@ class GenerationJobViewSet(viewsets.ModelViewSet):
         data = serializer.data
         # Only cache immutable terminal states
         if instance.status in ('completed', 'failed', 'cancelled'):
-            cache.set(cache_key, data, 3600)
+            try:
+                cache.set(cache_key, data, 3600)
+            except Exception as cache_err:
+                logger.warning(
+                    "[JOB RETRIEVE] Cache write failed",
+                    extra={"job_id": pk, "error": str(cache_err)},
+                )
             ttl = 3600
         else:
             ttl = 10

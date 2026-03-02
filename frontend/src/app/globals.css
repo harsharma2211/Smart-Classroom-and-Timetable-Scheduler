@@ -1825,6 +1825,161 @@
   }
 }
 
+/* =============================================================================
+   TIMETABLE STATUS PAGE — animations + utility classes
+   Used exclusively by admin/timetables/status/[jobId]/page.tsx
+============================================================================= */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes nodePulse {
+  0%, 100% { transform: scale(1);    }
+  50%       { transform: scale(1.12); }
+}
+@keyframes scalePop {
+  0%   { transform: scale(1);    }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1);    }
+}
+@keyframes drawCheck {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Full-page centred container */
+.status-page-bg {
+  margin: -12px;
+  min-height: calc(100vh - 4.5rem);
+  background-color: var(--color-bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+@media (min-width: 768px) {
+  .status-page-bg { margin: -24px; }
+}
+
+/* Modal card within status page */
+.status-modal-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(15,23,42,0.06);
+  padding: 28px 36px;
+  position: relative;
+  z-index: 1;
+}
+.status-modal-card--in  { animation: fadeUp 400ms ease-out both; }
+.status-modal-card--in1 { animation: fadeUp 400ms ease-out 100ms both; }
+
+/* Connecting screen centred content */
+.status-center-fade { text-align: center; animation: fadeUp 400ms ease-out 100ms both; }
+
+/* Top gradient overlay */
+.status-top-gradient {
+  background: linear-gradient(to bottom, rgba(248,250,255,0.95), transparent);
+  z-index: 0;
+}
+.dark .status-top-gradient { background: linear-gradient(to bottom, rgba(28,30,33,0.95), transparent); }
+
+/* SVG icon sizes for stage stepper */
+.status-stage-icon { width: 14px; height: 14px; }
+.status-small-icon { width: 12px; height: 12px; }
+
+/* Animated shimmer overlay (clipped to progress fill width) */
+.status-shimmer-overlay {
+  background: linear-gradient(
+    90deg,
+    transparent              0%,
+    rgba(255,255,255,0.45)  35%,
+    rgba(255,255,255,0.75)  50%,
+    rgba(255,255,255,0.45)  65%,
+    transparent             100%
+  );
+  animation: shimmer 1.8s linear infinite;
+}
+
+/* Checkmark SVG path draw-on animation */
+.status-check-path {
+  stroke-dasharray: 44;
+  stroke-dashoffset: 44;
+  animation: drawCheck 600ms ease-in-out forwards;
+}
+
+/* Success completion bar */
+.status-complete-track { height: 14px; border-radius: 9999px; overflow: hidden; background-color: hsl(210, 85%, 95%); }
+.dark .status-complete-track { background-color: hsl(120,35%,14%); }
+.status-complete-fill  { height: 100%; border-radius: 9999px; background-color: hsl(210, 95%, 50%); }
+
+/* Dynamic progress bar — driven by CSS custom properties injected via DOM ref */
+.status-progress-track { height: 14px; border-radius: 9999px; overflow: hidden; background-color: var(--track-color, #E2E8F0); }
+.status-progress-fill {
+  height: 100%; position: absolute; top: 0; left: 0;
+  border-radius: 9999px;
+  background-color: var(--bar-color, #2563EB);
+  box-shadow: 0 2px 8px var(--shadow-color, transparent);
+  width: var(--progress-pct, 0%);
+  transition: none;
+}
+.status-progress-shimmer-fill {
+  height: 100%; position: absolute; top: 0; left: 0;
+  border-radius: 9999px;
+  width: var(--progress-pct, 0%);
+  transition: none;
+}
+
+/* Percentage counter */
+.status-pct-display {
+  font-size: 2.5rem; font-weight: 700;
+  color: var(--bar-color, #2563EB);
+  display: inline-block;
+  animation: scalePop 150ms ease-out;
+}
+
+/* Stage stepper node states */
+.status-stage-node-fill {
+  background-color: var(--bar-color, #2563EB);
+  border-color: var(--bar-color, #2563EB);
+  color: #ffffff;
+}
+.status-stage-node-pulse {
+  box-shadow: 0 0 0 4px var(--track-color, #DBEAFE);
+  animation: nodePulse 2s ease-in-out infinite;
+}
+.status-stage-node-idle { background-color: transparent; border-color: var(--color-border); color: var(--color-text-muted); }
+.status-stage-label-active { font-size: 11px; max-width: 68px; color: var(--color-text-primary); font-weight: 600; }
+.status-stage-label-idle   { font-size: 11px; max-width: 68px; color: var(--color-text-muted);   font-weight: 400; }
+
+/* Stage connector lines */
+.status-connector-filled { height: 2px; background-color: var(--bar-color, #2563EB); }
+.status-connector-dashed {
+  height: 2px;
+  background-image: repeating-linear-gradient(
+    90deg, var(--color-border) 0, var(--color-border) 4px, transparent 4px, transparent 8px
+  );
+}
+
+/* Connection status dots */
+.status-dot-live  { background-color: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
+.status-dot-warn  { background-color: #F59E0B; }
+.status-dot-err   { background-color: #EF4444; }
+
+/* Staggered fade-up entry animations */
+.fu-0   { animation: fadeUp 400ms ease-out both; }
+.fu-100 { animation: fadeUp 400ms ease-out 100ms both; }
+.fu-150 { animation: fadeUp 400ms ease-out 150ms both; }
+.fu-200 { animation: fadeUp 400ms ease-out 200ms both; }
+.fu-250 { animation: fadeUp 400ms ease-out 250ms both; }
+.fu-300 { animation: fadeUp 400ms ease-out 300ms both; }
+.fu-350 { animation: fadeUp 400ms ease-out 350ms both; }
+.fu-400 { animation: fadeUp 400ms ease-out 400ms both; }
+.fu-450 { animation: fadeUp 400ms ease-out 450ms both; }
+.fu-500 { animation: fadeUp 400ms ease-out 500ms both; }
+
 /* ── Content area scrollbar — broad pill, no arrow buttons ── */
 .content-scroll::-webkit-scrollbar         { width: 14px; }
 .content-scroll::-webkit-scrollbar-button  { display: none; height: 0; }

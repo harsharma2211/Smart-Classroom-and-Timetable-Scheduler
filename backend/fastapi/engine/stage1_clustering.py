@@ -159,22 +159,52 @@ class LouvainClusterer:
         return weight
     
     def _run_louvain(self, G: nx.Graph) -> Dict:
-        """Run Louvain community detection"""
+        """Run Louvain community detection.
+
+        Falls back to sequential-index partitioning on *any* failure so that
+        a missing package, an isolated-node graph (which raises ValueError in
+        community_louvain), or any other runtime error never surfaces as the
+        "[DeptSolver] Clustering failed" warning that forces a single-cluster
+        fallback and stresses CP-SAT.
+        """
         try:
             import community as community_louvain
-            
+
+            # best_partition raises ValueError on empty / fully-isolated graphs
+            if len(G.nodes) == 0:
+                return {}
+
             # Run Louvain with fixed seed for reproducibility
             partition = community_louvain.best_partition(G, weight='weight', random_state=42)
-            
+
             # Calculate modularity
             modularity = community_louvain.modularity(partition, G, weight='weight')
             logger.debug(f"Louvain modularity: {modularity:.3f}")
-            
+
             return partition
-            
+
         except ImportError:
-            logger.warning("python-louvain not available, using department fallback")
-            return self._department_fallback(G)
+            logger.warning("python-louvain not available, using sequential-chunk fallback")
+            return self._sequential_fallback(G)
+        except Exception as exc:
+            logger.warning(
+                "Louvain partitioning failed (%s: %s) — using sequential-chunk fallback",
+                type(exc).__name__, exc,
+            )
+            return self._sequential_fallback(G)
+
+    def _sequential_fallback(self, G: nx.Graph) -> Dict:
+        """Assign nodes to clusters in insertion order in chunks of target_cluster_size.
+
+        Returns a partition dict identical in shape to community_louvain output
+        (node_id → cluster_int).  This is a deterministic O(N) operation that
+        never fails, replacing the old _department_fallback which required a
+        'course' attribute on graph nodes that was never actually set.
+        """
+        partition = {}
+        for idx, node_id in enumerate(G.nodes()):
+            partition[node_id] = idx // self.target_cluster_size
+        return partition
     
     def _department_fallback(self, G: nx.Graph) -> Dict:
         """Fallback clustering by department"""

@@ -55,6 +55,7 @@ import type { GenerationJob } from '@/types/timetable'
 import { useEffect, useRef, useState, ReactNode } from 'react'
 import { JetBrains_Mono } from 'next/font/google'
 import { GoogleSpinner } from '@/components/ui/GoogleSpinner'
+import { ArrowLeft, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '700'] })
 
@@ -646,10 +647,10 @@ export default function TimetableStatusPage() {
 
         {/* ETA + active stage description */}
         <div className="mt-3 flex items-start justify-between gap-6 fu-400">
-          <p className="text-[13px] italic leading-snug" style={{ color: 'var(--color-text-secondary)' }}>
+          <p className="text-xs italic leading-snug text-[var(--color-text-secondary)]">
             {activeStage.description}
           </p>
-          <p className="text-[14px] whitespace-nowrap shrink-0" style={{ color: 'var(--color-text-secondary)' }}>
+          <p className="text-sm whitespace-nowrap shrink-0 text-[var(--color-text-secondary)]">
             {formatETADisplay(smoothETA)}
           </p>
         </div>
@@ -694,42 +695,32 @@ export default function TimetableStatusPage() {
         </div>
 
         {/* Separator */}
-        <div className="h-px mb-6" style={{ background: 'var(--color-border)' }} />
+        <div className="h-px mb-6 bg-[var(--color-border)]" />
 
         {/* Footer: connection dot + cancel */}
         <div className="flex items-center justify-between flex-wrap gap-3 fu-500">
-          {/* Tiny connection indicator */}
+          {/* Connection indicator */}
           <div className="flex items-center gap-2">
             <div
               className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? 'status-dot-live' : reconnectAttempt > 0 ? 'status-dot-warn' : 'status-dot-err'}`}
             />
-            <span className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+            <span className="text-[11px] text-[var(--color-text-secondary)]">
               {isConnected ? 'Live' : reconnectAttempt > 0 ? 'Reconnecting...' : 'Offline'}
             </span>
           </div>
 
           {/* Cancel / inline confirmation */}
           {!showCancelConfirm ? (
-            <button
-              onClick={() => setShowCancelConfirm(true)}
-              className="btn-delete"
-            >
+            <button onClick={() => setShowCancelConfirm(true)} className="btn-delete">
               Cancel Generation
             </button>
           ) : (
             <div className="flex items-center gap-3 flex-wrap justify-end">
-              <span className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>Are you sure? This cannot be undone.</span>
-              <button
-                onClick={handleCancel}
-                disabled={isCancelling}
-                className="btn-danger disabled:opacity-50"
-              >
+              <span className="text-xs text-[var(--color-text-secondary)]">Are you sure? This cannot be undone.</span>
+              <button onClick={handleCancel} disabled={isCancelling} className="btn-danger">
                 {isCancelling ? 'Stopping...' : 'Yes, stop'}
               </button>
-              <button
-                onClick={() => setShowCancelConfirm(false)}
-                className="btn-ghost"
-              >
+              <button onClick={() => setShowCancelConfirm(false)} className="btn-ghost">
                 Keep going
               </button>
             </div>

@@ -1034,18 +1034,18 @@ class DjangoAPIClient:
             # Use time_config if provided, otherwise use defaults
             if time_config:
                 working_days = time_config.get('working_days', 6)
-                slots_per_day = time_config.get('slots_per_day', 9)
+                slots_per_day_requested = time_config.get('slots_per_day', 8)
                 start_time_str = time_config.get('start_time', '08:00')
                 end_time_str = time_config.get('end_time', '17:00')
                 slot_duration = time_config.get('slot_duration_minutes', 60)
                 lunch_break_enabled = time_config.get('lunch_break_enabled', True)
                 lunch_break_start = time_config.get('lunch_break_start', '12:00')
                 lunch_break_end = time_config.get('lunch_break_end', '13:00')
-                logger.debug(f"[TIME_SLOTS] Using config: {working_days} days, {slots_per_day} slots/day, {start_time_str}-{end_time_str}")
+                logger.debug(f"[TIME_SLOTS] Using config: {working_days} days, {slots_per_day_requested} slots/day, {start_time_str}-{end_time_str}")
             else:
                 # Default configuration (matches old behavior)
                 working_days = 6
-                slots_per_day = 9
+                slots_per_day_requested = 8  # 08:00-17:00 minus 1 h lunch = 8 × 60-min slots
                 start_time_str = '08:00'
                 end_time_str = '17:00'
                 slot_duration = 60
@@ -1064,17 +1064,42 @@ class DjangoAPIClient:
                 return datetime.strptime(time_str, '%H:%M')
             
             start_time = parse_time(start_time_str)
-            
+
             # Parse lunch break times
             lunch_start = parse_time(lunch_break_start) if lunch_break_enabled else None
             lunch_end = parse_time(lunch_break_end) if lunch_break_enabled else None
-            
+
+            # --- Pre-flight clamp -------------------------------------------
+            # Ensure slots_per_day never exceeds what the window can hold.
+            # This is a last-resort guard; the Django layer already clamps via
+            # resolve_time_config() / _max_slots().  If for any reason an
+            # unclamped value reaches here (direct FastAPI call, old Celery task
+            # still in the queue, etc.) we silently correct it instead of
+            # emitting a mid-loop warning and producing a partial day.
+            end_time_for_clamp = parse_time(end_time_str)
+            window_min = int((end_time_for_clamp - start_time).total_seconds() // 60)
+            lunch_min = 0
+            if lunch_break_enabled and lunch_start and lunch_end:
+                lunch_min = max(0, int((lunch_end - lunch_start).total_seconds() // 60))
+            effective_min = window_min - lunch_min
+            max_slots = max(1, effective_min // slot_duration)
+            slots_per_day = min(slots_per_day_requested, max_slots)
+            if slots_per_day < slots_per_day_requested:
+                logger.info(
+                    "[TIME_SLOTS] slots_per_day clamped %d → %d "
+                    "(%s–%s%s = %d effective min / %d min/slot)",
+                    slots_per_day_requested, slots_per_day,
+                    start_time_str, end_time_str,
+                    f", −{lunch_min} min lunch" if lunch_min else "",
+                    effective_min, slot_duration,
+                )
+            # ----------------------------------------------------------------
             # NEP 2020 FIX: Generate UNIVERSAL time slots (ONE grid for ALL departments)
             days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][:working_days]
             time_slots = []
 
-            # Parse end_time for boundary guard
-            end_time = parse_time(end_time_str)
+            # end_time already parsed above in the pre-flight clamp section
+            end_time = end_time_for_clamp
 
             # Global slot ID counter (0 to 53 for 9 periods × 6 days)
             global_slot_id = 0

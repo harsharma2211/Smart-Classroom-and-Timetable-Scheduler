@@ -93,6 +93,8 @@ urlpatterns = [
     # Progress tracking endpoints (Enterprise SSE pattern)
     path("generation/progress/<str:job_id>/", get_progress, name="generation-progress"),
     path("generation/stream/<str:job_id>/", stream_progress, name="generation-stream"),
+    path("generation/stream/<str:job_id>", stream_progress, name="generation-stream-no-slash"),
+    path("generation/progress/<str:job_id>", get_progress, name="generation-progress-no-slash"),
     path("generation/health/", health_check, name="generation-health"),
     # Auth endpoints - CSRF exempt via APICSRFExemptMiddleware
     path("auth/login/", login_view, name="login"),

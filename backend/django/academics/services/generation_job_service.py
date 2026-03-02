@@ -24,7 +24,7 @@ _PRIORITY_MAP: dict[str, int] = {"high": 9, "normal": 5, "low": 1}
 
 _DEFAULT_TIME_CONFIG: dict = {
     "working_days": 6,
-    "slots_per_day": 9,
+    "slots_per_day": 8,   # 08:00–17:00 minus 1 h lunch = 8 × 60-min slots
     "start_time": "08:00",
     "end_time": "17:00",
     "slot_duration_minutes": 60,
@@ -32,6 +32,29 @@ _DEFAULT_TIME_CONFIG: dict = {
     "lunch_break_start": "12:00",
     "lunch_break_end": "13:00",
 }
+
+
+def _max_slots(start_time: str, end_time: str,
+               lunch_enabled: bool, lunch_start: str, lunch_end: str,
+               slot_duration: int = 60) -> int:
+    """
+    Compute the maximum number of *slot_duration*-minute slots that fit in the
+    working window after subtracting the lunch break.
+
+    This mirrors the identical logic in the frontend's ``computeMaxSlots``
+    function (frontend/src/app/admin/timetables/new/page.tsx) so both layers
+    always agree on the ceiling, regardless of who sends the request.
+    """
+    def to_minutes(t: str) -> int:
+        parts = t.split(':')
+        return int(parts[0]) * 60 + int(parts[1]) if len(parts) == 2 else 0
+
+    window = to_minutes(end_time) - to_minutes(start_time)
+    if window <= 0:
+        return 1
+    lunch = max(0, to_minutes(lunch_end) - to_minutes(lunch_start)) if lunch_enabled else 0
+    effective = window - lunch
+    return max(1, effective // slot_duration)
 
 
 # ---------------------------------------------------------------------------
@@ -96,16 +119,41 @@ def enqueue_job_background(job, university_id: str, priority: str = "normal") ->
 # ---------------------------------------------------------------------------
 
 def _time_config_from_form(form_config: dict) -> dict:
-    """Build a time-config dict from form data submitted by the user."""
+    """Build a time-config dict from form data submitted by the user.
+
+    slots_per_day is clamped to the maximum value achievable with the supplied
+    time window so that FastAPI never receives a geometrically impossible config
+    (e.g. 9 slots in an 8-slot window).
+    """
+    start_time       = form_config.get("start_time",        _DEFAULT_TIME_CONFIG["start_time"])
+    end_time         = form_config.get("end_time",          _DEFAULT_TIME_CONFIG["end_time"])
+    slot_duration    = _DEFAULT_TIME_CONFIG["slot_duration_minutes"]
+    lunch_enabled    = form_config.get("lunch_break_enabled", True)
+    lunch_start      = form_config.get("lunch_break_start", _DEFAULT_TIME_CONFIG["lunch_break_start"])
+    lunch_end        = form_config.get("lunch_break_end",   _DEFAULT_TIME_CONFIG["lunch_break_end"])
+
+    max_slots  = _max_slots(start_time, end_time, lunch_enabled, lunch_start, lunch_end, slot_duration)
+    requested  = form_config.get("slots_per_day", _DEFAULT_TIME_CONFIG["slots_per_day"])
+    slots_per_day = min(int(requested), max_slots)
+
+    if slots_per_day < requested:
+        logger.info(
+            "[TIME_CONFIG] slots_per_day clamped %d → %d "
+            "(window %s–%s%s only fits %d × %d-min slots)",
+            requested, slots_per_day, start_time, end_time,
+            f", −{lunch_end[3:]}-{lunch_start[3:]} lunch" if lunch_enabled else "",
+            max_slots, slot_duration,
+        )
+
     return {
-        "working_days": form_config.get("working_days", _DEFAULT_TIME_CONFIG["working_days"]),
-        "slots_per_day": form_config.get("slots_per_day", _DEFAULT_TIME_CONFIG["slots_per_day"]),
-        "start_time": form_config.get("start_time", _DEFAULT_TIME_CONFIG["start_time"]),
-        "end_time": form_config.get("end_time", _DEFAULT_TIME_CONFIG["end_time"]),
-        "slot_duration_minutes": _DEFAULT_TIME_CONFIG["slot_duration_minutes"],
-        "lunch_break_enabled": form_config.get("lunch_break_enabled", True),
-        "lunch_break_start": form_config.get("lunch_break_start", _DEFAULT_TIME_CONFIG["lunch_break_start"]),
-        "lunch_break_end": form_config.get("lunch_break_end", _DEFAULT_TIME_CONFIG["lunch_break_end"]),
+        "working_days":        form_config.get("working_days", _DEFAULT_TIME_CONFIG["working_days"]),
+        "slots_per_day":       slots_per_day,
+        "start_time":          start_time,
+        "end_time":            end_time,
+        "slot_duration_minutes": slot_duration,
+        "lunch_break_enabled": lunch_enabled,
+        "lunch_break_start":   lunch_start,
+        "lunch_break_end":     lunch_end,
     }
 
 
