@@ -945,27 +945,6 @@
     border-radius: var(--radius-sm);
   }
 
-  /* ── Card progress bar (CardProgress component) ────────────────────────────── */
-  /* Structural/static properties live here; width + opacity are driven by JS  */
-  .card-progress-wrap {
-    position: absolute;
-    inset-inline: 0;
-    top: 0;
-    height: 4px;
-    opacity: 0;
-    pointer-events: none;
-    will-change: opacity;
-    border-radius: 12px 12px 0 0; /* matches --radius-lg = --radius-medium = 12px */
-    overflow: hidden;
-  }
-
-  .card-progress-bar {
-    height: 100%;
-    width: 0%;
-    background: var(--color-primary);
-    will-change: width;
-  }
-
   /* ── Bulk action toolbar ────────────────────────────────────────────────── */
   .bulk-toolbar {
     display: flex;
