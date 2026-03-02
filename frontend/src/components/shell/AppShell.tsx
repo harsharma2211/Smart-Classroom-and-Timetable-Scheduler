@@ -40,6 +40,8 @@ import {
   DoorOpen,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import Avatar from '@/components/shared/Avatar'
+import ProfileDropdown from './ProfileDropdown'
 import { Breadcrumb } from './Breadcrumb'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -114,13 +116,6 @@ const NAV_MAP: Record<string, NavEntry[]> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Deterministic hue from a string → Google-style avatar colour. */
-function seedHsl(name: string): string {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h)
-  return `hsl(${Math.abs(h) % 360},55%,45%)`
-}
-
 /** Resolve display name + two-letter initials from user object. */
 function resolveUser(u: {
   username: string
@@ -133,28 +128,6 @@ function resolveUser(u: {
   // Google-style: single letter — first char of first_name, fallback to username
   const initials = (u.first_name?.[0] ?? u.username[0]).toUpperCase()
   return { full, initials }
-}
-
-// ─── Avatar ───────────────────────────────────────────────────────────────────
-
-function Avatar({ name, size = 32 }: { name: string; size?: number }) {
-  const { initials } = resolveUser({ username: name })
-  const ref = useRef<HTMLSpanElement>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.style.setProperty('--av-size', `${size}px`)
-    el.style.setProperty('--av-font', `${size * 0.44}px`)
-    el.style.setProperty('--av-bg', seedHsl(name))
-  }, [size, name])
-  return (
-    <span
-      ref={ref}
-      className="inline-flex items-center justify-center rounded-full font-semibold text-white select-none shrink-0 [width:var(--av-size)] [height:var(--av-size)] [font-size:var(--av-font)] [background:var(--av-bg)]"
-    >
-      {initials}
-    </span>
-  )
 }
 
 // ─── NavItemRow ───────────────────────────────────────────────────────────────
@@ -187,7 +160,7 @@ function NavItemRow({
           ? 'justify-center gap-0 w-[44px] rounded-full mx-auto'
           : 'gap-3 px-[18px] w-[244.8px] rounded-[24px] mx-auto',
         active
-          ? 'bg-[#c2e7ff] dark:bg-[#1C2B4A] font-semibold text-[#001d35] dark:text-[#e3e3e3]'
+          ? 'bg-[#c2e7ff] dark:bg-[#1C2B4A] text-[#001d35] dark:text-[#e3e3e3]'
           : 'text-[#444746] dark:text-[#bdc1c6] hover:bg-[#e8f0fe] dark:hover:bg-[#1a2640]',
       ].join(' ')}
     >
@@ -200,7 +173,8 @@ function NavItemRow({
       {/* Visible label — hidden when rail is collapsed */}
       <span
         className={[
-          'text-sm whitespace-nowrap transition-all duration-200',
+          'hhIRA text-[14px] transition-all duration-200',
+          active ? 'font-bold text-[#1f1f1f]' : 'font-normal text-[#444746]',
           collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100',
         ].join(' ')}
       >
@@ -265,7 +239,7 @@ function NavGroupRow({
         className={[
           'w-[244.8px] flex items-center gap-3 px-[18px] h-[44px] rounded-[24px] transition-colors duration-150 select-none relative',
           isChildActive && !open
-            ? 'bg-[#c2e7ff] dark:bg-[#1C2B4A] font-semibold text-[#001d35] dark:text-[#e3e3e3]'
+            ? 'bg-[#c2e7ff] dark:bg-[#1C2B4A] text-[#001d35] dark:text-[#e3e3e3]'
             : 'text-[#444746] dark:text-[#bdc1c6] hover:bg-[#e8f0fe] dark:hover:bg-[#1a2640]',
         ].join(' ')}
       >
@@ -276,7 +250,7 @@ function NavGroupRow({
           className={`absolute left-1 shrink-0 transition-transform duration-200 ${open ? 'rotate-0' : '-rotate-90'}`}
         />
         <Icon size={20} strokeWidth={isChildActive ? 2.4 : 1.8} className="shrink-0" />
-        <span className="flex-1 text-sm text-left whitespace-nowrap">{group.label}</span>
+        <span className={['hhIRA text-[14px] text-left', isChildActive ? 'font-bold text-[#1f1f1f]' : 'font-normal text-[#444746]'].join(' ')}>{group.label}</span>
       </button>
 
       {/* Sub-items — stacked below the group header */}
@@ -293,12 +267,12 @@ function NavGroupRow({
                 className={[
                   'flex items-center gap-2.5 h-9 px-3 rounded-[20px] text-sm transition-colors duration-150 select-none',
                   active
-                    ? 'bg-[#c2e7ff] dark:bg-[#1C2B4A] font-semibold text-[#001d35] dark:text-[#e3e3e3]'
-                    : 'text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#e8f0fe] dark:hover:bg-[#1a2640] hover:text-[#444746] dark:hover:text-[#bdc1c6]',
+                    ? 'bg-[#c2e7ff] dark:bg-[#1C2B4A] text-[#001d35] dark:text-[#e3e3e3]'
+                    : 'text-[#444746] dark:text-[#9aa0a6] hover:bg-[#e8f0fe] dark:hover:bg-[#1a2640]',
                 ].join(' ')}
               >
                 <ChildIcon size={15} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
-                <span className="whitespace-nowrap">{child.label}</span>
+                <span className={['hhIRA text-[14px]', active ? 'font-bold text-[#1f1f1f]' : 'font-normal text-[#444746]'].join(' ')}>{child.label}</span>
               </Link>
             )
           })}
@@ -487,7 +461,7 @@ export default function AppShell({ children }: DashboardLayoutProps) {
               style={{ mixBlendMode: 'multiply', flexShrink: 0 }}
             />
             <span
-              className="hidden sm:inline text-[17px] font-semibold [color:var(--color-text-primary,#202124)] whitespace-nowrap tracking-[-0.01em]"
+              className="hidden sm:inline-flex items-center w-[92.75px] h-[48px] text-[22px] font-normal [color:var(--color-text-primary,#202124)] tracking-[-0.01em] overflow-hidden"
             >
               Cadence
             </span>
@@ -497,13 +471,10 @@ export default function AppShell({ children }: DashboardLayoutProps) {
         {/* ── Zone 2: Search bar — left-aligned, anchored just after the sidebar, never moves ── */}
         <div className="hidden md:flex flex-1 items-center pl-3">
           <div
-            className="flex items-center overflow-hidden transition-shadow duration-150 focus-within:shadow-[0_2px_8px_rgba(32,33,36,0.2)]"
-            style={{ width: '720px', height: '48px', background: '#e9eef6', borderRadius: '9999px' }}
-            onFocus={e => (e.currentTarget.style.background = '#ffffff')}
-            onBlur={e => (e.currentTarget.style.background = '#e9eef6')}
+            className="flex items-center overflow-hidden transition-shadow duration-150 w-[720px] h-12 bg-[#e9eef6] rounded-full focus-within:shadow-[0_2px_8px_rgba(32,33,36,0.2)] focus-within:bg-white"
           >
             {/* Search icon — left */}
-            <span className="ml-4 mr-2 shrink-0 flex items-center justify-center" style={{ color: '#444746' }}>
+            <span className="ml-4 mr-2 shrink-0 flex items-center justify-center text-[#444746]">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -617,115 +588,15 @@ export default function AppShell({ children }: DashboardLayoutProps) {
             </button>
 
             {profileOpen && (
-              /* Outer panel — light: soft blue-grey #e8edf5 | dark: Google panel #202124 */
-              <div className="absolute right-0 top-[calc(100%+8px)] w-[360px] rounded-[28px] shadow-[0_8px_24px_rgba(0,0,0,0.18)] bg-[#e8edf5] dark:bg-[#202124] border border-[#cdd3de] dark:border-[#3c4043] overflow-hidden z-[60]">
-
-                {/* ── Row 1: centered email + X ── */}
-                <div className="relative flex items-center justify-center h-12 px-12">
-                  <span className="text-[16px] font-normal text-[#1f1f1f] dark:text-[#e8eaed] truncate select-none">
-                    {user?.email ?? ''}
-                  </span>
-                  <button
-                    onClick={() => setProfileOpen(false)}
-                    aria-label="Close"
-                    className="absolute right-3 w-8 h-8 flex items-center justify-center rounded-full text-[#5f6368] dark:text-[#9aa0a6] hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-
-                {/* ── Row 2: centered avatar + Hi + full name ── */}
-                <div className="flex flex-col items-center px-6 pt-6 pb-5">
-                  <Avatar name={displayName} size={72} />
-                  <p className="mt-4 text-[22px] font-normal text-[#202124] dark:text-[#e8eaed] leading-snug">
-                    Hi, {user?.first_name || displayName.split(' ')[0]}!
-                  </p>
-                  <p className="mt-0.5 mb-5 text-[14px] text-[#5f6368] dark:text-[#9aa0a6]">
-                    {displayName}
-                  </p>
-
-                </div>
-
-                {/* ── Cards section ── */}
-                <div className="px-3 pb-3 flex flex-col gap-2">
-
-                  {/* Logged in as role */}
-                  <div className="bg-white dark:bg-[#2d2f31] rounded-[20px] px-4 py-3 flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
-                    <span className="text-[13px] text-[#5f6368] dark:text-[#9aa0a6] flex-1">Logged in as</span>
-                    <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#c2e7ff] dark:bg-[#1C2B4A] text-[#001d35] dark:text-[#8AB4F8] uppercase tracking-wider">
-                      {rolePill}
-                    </span>
-                  </div>
-
-                    {/* Profile | Sign out */}
-                  <div className="flex rounded-full border border-[#c5ccd8] dark:border-[#5f6368] bg-white dark:bg-[#2d2f31] overflow-hidden">
-                    <Link
-                      href={`/${role}/profile`}
-                      onClick={() => setProfileOpen(false)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
-                    >
-                      <UserIcon size={15} className="shrink-0" />
-                      Profile
-                    </Link>
-                    <div className="w-px my-2 bg-[#c5ccd8] dark:bg-[#5f6368]" />
-                    <button
-                      onClick={() => { setProfileOpen(false); setShowSignOut(true) }}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-[14px] font-medium text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
-                    >
-                      <LogOut size={15} className="shrink-0" />
-                      Sign out
-                    </button>
-                  </div>
-
-                  {/* Settings + Theme */}
-                  <div className="bg-white dark:bg-[#2d2f31] rounded-[20px] overflow-hidden">
-                    <Link
-                      href={`/${role}/settings`}
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3.5 text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#d8dde9] dark:hover:bg-[#3c4043] transition-colors"
-                    >
-                      <Settings size={18} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
-                      <span className="flex-1">Settings</span>
-                    </Link>
-                    <div className="h-px mx-4 bg-[#dde2eb] dark:bg-[#3c4043]" />
-                    <button
-                      onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#d8dde9] dark:hover:bg-[#3c4043] transition-colors text-left"
-                    >
-                      {mounted && resolvedTheme === 'dark'
-                        ? <Sun  size={18} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
-                        : <Moon size={18} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
-                      }
-                      <span className="flex-1">
-                        {mounted && resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
-                      </span>
-                      <span className="text-[12px] text-[#5f6368] dark:text-[#9aa0a6]">Off</span>
-                    </button>
-                  </div>
-
-                  {/* Language | Help */}
-                  <div className="bg-white dark:bg-[#2d2f31] rounded-[20px] overflow-hidden flex">
-                    <button className="flex-1 flex items-center gap-2 px-4 py-3.5 text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#d8dde9] dark:hover:bg-[#3c4043] transition-colors">
-                      <Globe      size={17} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
-                      <span>Language</span>
-                    </button>
-                    <div className="w-px my-3 bg-[#dde2eb] dark:bg-[#3c4043]" />
-                    <button className="flex-1 flex items-center gap-2 px-4 py-3.5 text-[14px] text-[#1f1f1f] dark:text-[#e8eaed] hover:bg-[#d8dde9] dark:hover:bg-[#3c4043] transition-colors">
-                      <HelpCircle size={17} className="text-[#5f6368] dark:text-[#9aa0a6] shrink-0" />
-                      <span>Help</span>
-                    </button>
-                  </div>
-
-                  {/* Footer */}
-                  <p className="text-center text-[12px] text-[#5f6368] dark:text-[#9aa0a6] pt-1 pb-1">
-                    <a href="/privacy" className="hover:underline">Privacy Policy</a>
-                    <span className="mx-1.5">&bull;</span>
-                    <a href="/terms" className="hover:underline">Terms of Service</a>
-                  </p>
-
-                </div>
-              </div>
+              <ProfileDropdown
+                user={user}
+                displayName={displayName}
+                role={role}
+                rolePill={rolePill}
+                mounted={mounted}
+                onClose={() => setProfileOpen(false)}
+                onSignOut={() => { setProfileOpen(false); setShowSignOut(true) }}
+              />
             )}
           </div>
         </div>

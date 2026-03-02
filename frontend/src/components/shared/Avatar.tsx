@@ -1,5 +1,7 @@
 // src/components/shared/Avatar.tsx
-// Google Contacts–style seeded avatar with optional image override.
+// Google Contacts–style seeded avatar — proportional letter scaling, Google Sans.
+
+import { useRef, useEffect } from 'react'
 
 const PALETTE = [
   '#d32f2f','#c2185b','#7b1fa2','#512da8',
@@ -15,59 +17,57 @@ function seedColor(name: string): string {
   return PALETTE[Math.abs(hash) % PALETTE.length]
 }
 
-function initials(name: string): string {
+function initial(name: string): string {
   return (name.trim()[0] ?? '?').toUpperCase()
 }
 
 type AvatarSize = 'sm' | 'md' | 'lg'
 
-const SIZE_MAP: Record<AvatarSize, string> = {
-  sm: 'var(--avatar-size-sm)',
-  md: 'var(--avatar-size-md)',
-  lg: 'var(--avatar-size-lg)',
-}
-
-const FONT_MAP: Record<AvatarSize, string> = {
-  sm: '13px',
-  md: '16px',
-  lg: '20px',
+/** Named preset → pixel diameter */
+const SIZE_PX: Record<AvatarSize, number> = {
+  sm: 32,
+  md: 36,
+  lg: 40,
 }
 
 interface AvatarProps {
   name: string
-  size?: AvatarSize
+  /** Named preset or any pixel number — letter scales proportionally (×0.42, Google's ratio). */
+  size?: AvatarSize | number
   imageUrl?: string
   className?: string
 }
 
 export default function Avatar({ name, size = 'md', imageUrl, className = '' }: AvatarProps) {
-  const dim = SIZE_MAP[size]
+  const px = typeof size === 'number' ? size : SIZE_PX[size]
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.setProperty('--av-sz', `${px}px`)
+    el.style.setProperty('--av-fs', `${Math.round(px * 0.42)}px`)
+    el.style.setProperty('--av-bg', seedColor(name))
+  }, [px, name])
 
   if (imageUrl) {
     return (
-      <img
-        src={imageUrl}
-        alt={name}
-        className={`rounded-full object-cover shrink-0 ${className}`}
-        style={{ width: dim, height: dim }}
-      />
+      <div
+        ref={ref}
+        className={`rounded-full shrink-0 overflow-hidden [width:var(--av-sz)] [height:var(--av-sz)] ${className}`}
+      >
+        <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+      </div>
     )
   }
 
   return (
     <div
+      ref={ref}
       aria-label={name}
-      className={`rounded-full shrink-0 flex items-center justify-center select-none ${className}`}
-      style={{
-        width: dim,
-        height: dim,
-        backgroundColor: seedColor(name),
-        color: '#ffffff',
-        fontSize: FONT_MAP[size],
-        fontWeight: 500,
-      }}
+      className={`avatar-font rounded-full shrink-0 flex items-center justify-center select-none text-white font-medium [width:var(--av-sz)] [height:var(--av-sz)] [font-size:var(--av-fs)] [background:var(--av-bg)] ${className}`}
     >
-      {initials(name)}
+      {initial(name)}
     </div>
   )
 }

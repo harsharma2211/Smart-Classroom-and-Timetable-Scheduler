@@ -1,1503 +1,1996 @@
-# Frontend Documentation — SIH28 Timetable Optimization Platform
-**For UI/UX Developers · Last Updated: February 2026**
+# Frontend Documentation — Cadence Timetable Platform
+
+> **Framework**: Next.js 14 (App Router) | **Language**: TypeScript | **Styling**: Tailwind CSS v3 + CSS Custom Properties | **State**: React Context + `useState` + `useRef` | **Auth**: HttpOnly Cookie JWT
+>
+> **Last Updated**: March 2026
 
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#1-project-overview)
-2. [Tech Stack & Dependencies](#2-tech-stack--dependencies)
-3. [Project Structure](#3-project-structure)
-4. [Design System & Global Styles](#4-design-system--global-styles)
-5. [Tailwind Configuration](#5-tailwind-configuration)
-6. [Typography System](#6-typography-system)
-7. [Color Palette](#7-color-palette)
-8. [Component Inventory](#8-component-inventory)
-9. [Layout Components](#9-layout-components)
-10. [Page-by-Page Breakdown](#10-page-by-page-breakdown)
-11. [Authentication Flow](#11-authentication-flow)
-12. [API Client Layer](#12-api-client-layer)
-13. [Custom Hooks](#13-custom-hooks)
-14. [Types & Interfaces](#14-types--interfaces)
-15. [Utility Functions](#15-utility-functions)
-16. [Responsive Design Patterns](#16-responsive-design-patterns)
-17. [Dark Mode Implementation](#17-dark-mode-implementation)
-18. [UI/UX Patterns & Conventions](#18-uiux-patterns--conventions)
-19. [Known UX Gaps & Enhancement Opportunities](#19-known-ux-gaps--enhancement-opportunities)
+1. [Project Structure Overview](#1-project-structure-overview)
+2. [Technology Stack & Dependencies](#2-technology-stack--dependencies)
+3. [Root & Config Files](#3-root--config-files)
+4. [App Directory — `src/app/`](#4-app-directory--srcapp)
+5. [Components Directory — `src/components/`](#5-components-directory--srccomponents)
+6. [Context — `src/context/`](#6-context--srccontext)
+7. [Hooks — `src/hooks/`](#7-hooks--srchooks)
+8. [Lib — `src/lib/`](#8-lib--srclib)
+9. [Types — `src/types/`](#9-types--srctypes)
+10. [Rendering & Data-Flow Diagram](#10-rendering--data-flow-diagram)
+11. [Authentication & Route-Guard Architecture](#11-authentication--route-guard-architecture)
+12. [CSS Architecture](#12-css-architecture)
 
 ---
 
-## 1. Project Overview
-
-SIH28 is an **AI-powered timetable optimization platform** for educational institutions. The frontend is a Next.js 14 App Router application that serves three user roles:
-
-| Role | Routes | Purpose |
-|------|--------|---------|
-| **Admin** | `/admin/*` | Manage users, faculty, students, academic structure, timetable generation, approvals, logs |
-| **Faculty** | `/faculty/*` | View personal schedule, set teaching preferences, availability |
-| **Student** | `/student/*` | View personal timetable, enrolled courses |
-
-The root `/` page immediately redirects to `/login`. Route protection is enforced at every layout via `AuthContext`.
-
----
-
-## 2. Tech Stack & Dependencies
-
-| Category | Library / Tool | Usage |
-|----------|---------------|-------|
-| Framework | **Next.js 14** (App Router) | SSR/CSR hybrid, file-based routing |
-| UI Styling | **Tailwind CSS** | Utility-first CSS, dark mode via `class` strategy |
-| Component Library | **Custom** (no shadcn) | All UI components hand-rolled |
-| Forms | **react-hook-form** + **zod** | Validation using `zodResolver` |
-| Auth | **HttpOnly Cookies** (JWT) | Cookie-based, no localStorage for tokens |
-| State / Context | **React Context API** | `AuthContext`, `ToastContext` |
-| Icons | **lucide-react** | For Toast and ErrorBoundary icons |
-| HTTP | **Fetch API** (custom wrapper) | `ApiClient` class in `lib/api.ts` |
-| Real-time | **EventSource / SSE** | Progress stream for timetable generation |
-| Export | **jsPDF**, **html2canvas**, **xlsx**, **file-saver** | PDF/Excel/CSV/ICS export |
-| Theme | **next-themes** | Dark/light toggle with system preference |
-| Fonts | **Google Fonts** (Inter + Poppins) | Loaded via both `@import` in CSS and `next/font/google` |
-| Caching | **sessionStorage** + **in-memory Map** | Stale-while-revalidate pattern |
-| Utilities | **clsx** + **tailwind-merge** | `cn()` utility for conditional classes |
-
----
-
-## 3. Project Structure
+## 1. Project Structure Overview
 
 ```
 frontend/
-├── src/
-│   ├── app/                      # Next.js App Router pages
-│   │   ├── layout.tsx            # Root layout — wraps all pages
-│   │   ├── page.tsx              # Root page — redirects to /login
-│   │   ├── globals.css           # Global styles, CSS custom properties, component classes
-│   │   ├── (auth)/
-│   │   │   └── login/
-│   │   │       └── page.tsx      # Login page
-│   │   ├── admin/
-│   │   │   ├── layout.tsx        # Admin auth guard + DashboardLayout wrapper
-│   │   │   ├── dashboard/page.tsx
-│   │   │   ├── admins/page.tsx
-│   │   │   ├── faculty/
-│   │   │   │   ├── page.tsx
-│   │   │   │   └── components/   # AddEditFacultyModal
-│   │   │   ├── students/
-│   │   │   │   ├── page.tsx
-│   │   │   │   └── components/   # AddEditStudentModal
-│   │   │   ├── academic/
-│   │   │   │   ├── page.tsx      # Redirects to /admin/academic/schools
-│   │   │   │   ├── layout.tsx    # In-content tab navigation
-│   │   │   │   ├── schools/
-│   │   │   │   ├── departments/
-│   │   │   │   ├── buildings/
-│   │   │   │   ├── rooms/
-│   │   │   │   ├── courses/
-│   │   │   │   └── programs/
-│   │   │   ├── timetables/
-│   │   │   │   ├── page.tsx      # Timetable list (grid/list view)
-│   │   │   │   ├── new/          # New generation form
-│   │   │   │   ├── status/       # Generation job status with SSE progress
-│   │   │   │   ├── compare/      # Variant comparison
-│   │   │   │   └── [timetableId]/ # Timetable detail view
-│   │   │   ├── approvals/page.tsx
-│   │   │   └── logs/page.tsx
-│   │   ├── faculty/
-│   │   │   ├── layout.tsx        # Faculty auth guard
-│   │   │   ├── dashboard/page.tsx
-│   │   │   ├── schedule/page.tsx
-│   │   │   └── preferences/page.tsx
-│   │   ├── student/
-│   │   │   ├── layout.tsx        # Student auth guard
-│   │   │   ├── dashboard/page.tsx
-│   │   │   └── timetable/page.tsx
-│   │   └── unauthorized/         # 403 page
-│   │
-│   ├── components/
-│   │   ├── dashboard-layout.tsx  # Primary shell: header + sidebar + content area
-│   │   ├── ErrorBoundary.tsx     # React class error boundary
-│   │   ├── FormFields.tsx        # FormField, SelectField, TextAreaField components
-│   │   ├── LoadingSkeletons.tsx  # Skeleton, TableSkeleton, TimetableCardSkeleton, etc.
-│   │   ├── OptimizedTimetableList.tsx
-│   │   ├── Pagination.tsx        # Full pagination with keyboard support
-│   │   ├── profile-settings.tsx
-│   │   ├── theme-provider.tsx    # next-themes wrapper
-│   │   ├── Toast.tsx             # ToastProvider + useToast hook
-│   │   ├── layout/
-│   │   │   ├── Header.tsx        # Simple top bar (used in legacy view)
-│   │   │   └── Sidebar.tsx       # Role-aware collapsible sidebar
-│   │   ├── modals/
-│   │   │   └── SubstitutionModal.tsx
-│   │   ├── shared/
-│   │   │   ├── DataTable.tsx     # Reusable sortable/searchable/paginated table
-│   │   │   ├── ExportButton.tsx  # PDF/Excel/CSV/ICS export dropdown
-│   │   │   ├── LoadingComponents.tsx
-│   │   │   ├── PageHeader.tsx    # Title + description + action slot
-│   │   │   ├── ProfileDropdown.tsx
-│   │   │   └── TimetableGrid.tsx # Week-view timetable (mobile card + desktop table)
-│   │   └── ui/
-│   │       ├── avatar.tsx
-│   │       ├── badge.tsx
-│   │       ├── button.tsx
-│   │       ├── card.tsx
-│   │       ├── checkbox.tsx
-│   │       ├── GoogleSpinner.tsx # Material Design indeterminate spinner
-│   │       ├── InContentNav.tsx  # Tab pill navigation bar
-│   │       ├── input.tsx
-│   │       ├── label.tsx
-│   │       ├── progress-bar.tsx
-│   │       ├── select.tsx
-│   │       ├── switch.tsx
-│   │       ├── table.tsx
-│   │       ├── textarea.tsx
-│   │       └── timetableform.tsx
-│   │
-│   ├── context/
-│   │   └── AuthContext.tsx       # Global auth state: user, login(), logout(), isLoading
-│   │
-│   ├── hooks/
-│   │   ├── usePaginatedData.ts   # Generic paginated fetch hook with debounced search
-│   │   └── useProgress.ts        # SSE-based real-time progress hook for generation jobs
-│   │
-│   ├── lib/
-│   │   ├── api.ts                # ApiClient class — all backend endpoints
-│   │   ├── auth.ts               # Cookie-based auth helpers (mostly legacy compatibility)
-│   │   ├── exportUtils.ts        # PDF, Excel, CSV, ICS export functions
-│   │   ├── utils.ts              # cn() utility
-│   │   ├── validations.ts        # Zod schemas for all forms
-│   │   └── api/
-│   │       ├── timetable.ts      # Timetable-specific API functions
-│   │       └── optimized-client.ts # In-memory cached API client
-│   │
-│   └── types/
-│       ├── index.ts              # User interface
-│       ├── timetable.ts          # All timetable-related TypeScript interfaces
-│       └── css.d.ts              # CSS module declarations
-│
-├── tailwind.config.ts            # Extended theme: colors, fonts, spacing
-├── next.config.mjs
-├── package.json
-└── .env                          # NEXT_PUBLIC_API_URL, NEXT_PUBLIC_DJANGO_API_URL, etc.
+├── package.json                           # npm scripts + all dependencies
+├── next.config.mjs                        # Next.js config (image domains, env)
+├── tailwind.config.ts                     # Tailwind with content paths
+├── tsconfig.json                          # TypeScript (@/ alias → ./src/)
+├── postcss.config.js                      # PostCSS plugins
+└── src/
+    ├── app/                               # Next.js App Router route segments
+    │   ├── globals.css                    ← 1 445 lines — design tokens, all CSS
+    │   ├── layout.tsx                     ← 22 lines  — root HTML + Providers
+    │   ├── robots.ts                      ← 15 lines  — robots.txt
+    │   ├── (auth)/
+    │   │   └── login/page.tsx             ← 396 lines — Google-style login
+    │   ├── (marketing)/
+    │   │   ├── layout.tsx                 ← 45 lines  — Nav + Footer wrapper
+    │   │   ├── page.tsx                   ← 238 lines — Home page
+    │   │   ├── sitemap.ts                 ← 84 lines  — XML sitemap
+    │   │   ├── blog/page.tsx              ← 157 lines
+    │   │   ├── company/page.tsx           ← 181 lines
+    │   │   ├── contact/page.tsx           ← 116 lines
+    │   │   ├── legal/privacy/page.tsx     ← 61 lines
+    │   │   ├── legal/terms/page.tsx       ← 65 lines
+    │   │   ├── pricing/page.tsx           ← 107 lines
+    │   │   └── product/page.tsx           ← 206 lines
+    │   ├── admin/
+    │   │   ├── layout.tsx                 ← 41 lines  — auth guard + AppShell
+    │   │   ├── dashboard/page.tsx         ← 657 lines — recharts dashboard
+    │   │   ├── admins/page.tsx            ← 132 lines
+    │   │   │   └── components/
+    │   │   │       ├── AddEditUserModal.tsx    ← 165 lines
+    │   │   │       └── UserDetailPanel.tsx     ← 127 lines
+    │   │   ├── faculty/page.tsx           ← 140 lines
+    │   │   │   └── components/
+    │   │   │       ├── AddEditFacultyModal.tsx ← 218 lines
+    │   │   │       └── FacultyDetailPanel.tsx  ← 149 lines
+    │   │   ├── students/page.tsx          ← 126 lines
+    │   │   │   └── components/
+    │   │   │       ├── AddEditStudentModal.tsx ← 215 lines
+    │   │   │       └── StudentDetailPanel.tsx  ← 176 lines
+    │   │   ├── academic/
+    │   │   │   ├── layout.tsx             ← 3 lines   — passthrough
+    │   │   │   ├── page.tsx               ← 10 lines  — redirect to /schools
+    │   │   │   ├── buildings/page.tsx     ← 98 lines
+    │   │   │   │   └── components/AddEditBuildingModal.tsx ← 141 lines
+    │   │   │   ├── courses/page.tsx       ← 165 lines
+    │   │   │   ├── departments/page.tsx   ← 101 lines
+    │   │   │   │   └── components/AddEditDepartmentModal.tsx ← 143 lines
+    │   │   │   ├── programs/page.tsx      ← 98 lines
+    │   │   │   │   └── components/AddEditProgramModal.tsx ← 161 lines
+    │   │   │   ├── rooms/page.tsx         ← 195 lines
+    │   │   │   └── schools/page.tsx       ← 100 lines
+    │   │   │       └── components/AddEditSchoolModal.tsx ← 115 lines
+    │   │   ├── timetables/
+    │   │   │   ├── page.tsx               ← 622 lines — list + filter
+    │   │   │   ├── loading.tsx            ← 1 line    — Suspense loader
+    │   │   │   └── new/page.tsx           ← 218 lines — generation wizard
+    │   │   ├── approvals/page.tsx         ← 455 lines — review queue
+    │   │   └── logs/page.tsx              ← 191 lines — audit log viewer
+    │   ├── faculty/
+    │   │   ├── layout.tsx                 ← 33 lines
+    │   │   ├── dashboard/page.tsx         ← 327 lines
+    │   │   ├── preferences/page.tsx       ← 155 lines
+    │   │   └── schedule/page.tsx          ← 220 lines
+    │   ├── student/
+    │   │   ├── layout.tsx                 ← 26 lines
+    │   │   ├── dashboard/page.tsx         ← 850 lines (largest file)
+    │   │   └── timetable/page.tsx         ← 250 lines
+    │   └── unauthorized/page.tsx          ← 34 lines  — 403 page
+    ├── components/
+    │   ├── AuthRedirect.tsx               ← 46 lines
+    │   ├── ErrorBoundary.tsx              ← 126 lines
+    │   ├── FormFields.tsx                 ← 139 lines
+    │   ├── LoadingSkeletons.tsx           ← 315 lines
+    │   ├── Pagination.tsx                 ← 296 lines
+    │   ├── Providers.tsx                  ← 21 lines — provider tree root
+    │   ├── Toast.tsx                      ← 199 lines
+    │   ├── marketing/                     # Public-site-specific components
+    │   │   ├── AnimatedTimetable.tsx      ← 452 lines
+    │   │   ├── DemoRequestForm.tsx        ← 209 lines
+    │   │   ├── FeatureGrid.tsx            ← 207 lines
+    │   │   ├── HeroSection.tsx            ← 138 lines
+    │   │   ├── MarketingFooter.tsx        ← 140 lines
+    │   │   ├── MarketingNav.tsx           ← 203 lines
+    │   │   ├── PricingTable.tsx           ← 240 lines
+    │   │   └── SocialProof.tsx            ← 99 lines
+    │   ├── shared/                        # Cross-feature reusable components
+    │   │   ├── Avatar.tsx                 ← 74 lines
+    │   │   ├── ConfirmDeleteDialog.tsx    ← 83 lines
+    │   │   ├── DataTable.tsx              ← 942 lines
+    │   │   ├── ExportButton.tsx           ← 159 lines
+    │   │   ├── PageHeader.tsx             ← 97 lines
+    │   │   ├── SearchBar.tsx              ← 48 lines
+    │   │   └── TimetableGrid.tsx          ← 273 lines
+    │   ├── shell/                         # Application shell (header, sidebar)
+    │   │   ├── AppShell.tsx               ← 753 lines
+    │   │   ├── AppShellSkeleton.tsx       ← 95 lines
+    │   │   ├── Breadcrumb.tsx             ← 204 lines
+    │   │   └── ProfileDropdown.tsx        ← 204 lines
+    │   ├── timetables/                    # Timetable feature UI
+    │   │   ├── CompareGrid.tsx            ← 355 lines
+    │   │   ├── DepartmentTree.tsx         ← 120 lines
+    │   │   ├── ScoreBar.tsx               ← 66 lines
+    │   │   ├── SlotDetailPanel.tsx        ← 150 lines
+    │   │   ├── TimetableGridFiltered.tsx  ← 345 lines
+    │   │   ├── VariantCard.tsx            ← 198 lines
+    │   │   ├── VariantGrid.tsx            ← 196 lines
+    │   │   └── VariantStatusBadge.tsx     ← 79 lines
+    │   └── ui/                            # Generic atoms
+    │       ├── GoogleSpinner.tsx          ← 83 lines
+    │       └── NavigationProgress.tsx     ← 241 lines
+    ├── context/
+    │   └── AuthContext.tsx                ← 132 lines
+    ├── hooks/
+    │   ├── useProgress.ts                 ← 553 lines
+    │   └── useScrollReveal.ts             ← 66 lines
+    ├── lib/
+    │   ├── api.ts                         ← 606 lines — ApiClient singleton
+    │   ├── auth.ts                        ← 91 lines  — cookie token refresh
+    │   ├── exportUtils.ts                 ← 299 lines — PDF/Excel/CSV/ICS
+    │   ├── utils.ts                       ← 5 lines   — cn() helper
+    │   ├── validations.ts                 ← 470 lines — Zod schemas
+    │   └── api/
+    │       ├── timetable.ts               ← 38 lines
+    │       └── timetable-variants.ts      ← 108 lines
+    └── types/
+        ├── css.d.ts                       ← 12 lines
+        ├── index.ts                       ← 13 lines — User interface
+        └── timetable.ts                   ← 382 lines — all timetable types
 ```
 
 ---
 
-## 4. Design System & Global Styles
+## 2. Technology Stack & Dependencies
 
-All global design tokens and reusable CSS component classes live in `src/app/globals.css`. This file is the **single source of truth** for the visual language.
-
-### 4.1 CSS Layer Structure
-
-```css
-@tailwind base;      /* Resets + base HTML element styles */
-@tailwind components; /* Named component classes (.btn-primary, .card, etc.) */
-@tailwind utilities;  /* Atomic utility overrides */
-```
-
-### 4.2 Custom Animation: Google Material Spinner
-
-A pixel-accurate Material Design indeterminate progress animation built purely in CSS:
-
-```css
-/* Full rotation of the SVG ring — 2s linear */
-@keyframes gsp-rotate { 100% { transform: rotate(360deg); } }
-
-/* Arc expand → contract → sweep away */
-@keyframes gsp-dash {
-  0%   { stroke-dasharray: 1, 200;   stroke-dashoffset: 0;    }
-  50%  { stroke-dasharray: 100, 200; stroke-dashoffset: -15;  }
-  100% { stroke-dasharray: 100, 200; stroke-dashoffset: -125; }
-}
-
-.gsp-rotate { animation: gsp-rotate 2s linear infinite; }
-.gsp-arc    { animation: gsp-dash 1.5s cubic-bezier(0.4, 0.0, 0.2, 1) infinite; }
-```
-
-Applied by the `GoogleSpinner` component (see §8.9).
+| Category | Package | Version | Purpose |
+|---|---|---|---|
+| Framework | `next` | 14.0.0 | App Router, SSR/SSG, file-based routing |
+| Language | `typescript` | ^5 | Static typing everywhere |
+| Styling | `tailwindcss` | ^3.3 | Utility classes + arbitrary value syntax |
+| Theme | `next-themes` | ^0.2.1 | Dark/Light mode with `attribute="class"` |
+| Forms | `react-hook-form` | ^7.66 | Controlled forms with minimal re-renders |
+| Validation | `zod` | ^3.25 | Schema-first runtime + compile-time validation |
+| Resolver | `@hookform/resolvers` | ^3.9 | Bridges zod ↔ react-hook-form |
+| Icons | `lucide-react` | ^0.292 | Tree-shakeable SVG icon system |
+| Radix UI | `@radix-ui/*` | various | Accessible headless: avatar, dropdown, label, select, switch, tabs |
+| Charts | `recharts` | ^2.10 | Admin dashboard analytics |
+| Real-time | `socket.io-client` | ^4.5 | WebSocket (available; SSE preferred for progress) |
+| SWR | `swr` | ^2.2 | Data fetching with cache (installed, partially used) |
+| State | `zustand` | ^4.4 | Global state (installed, available) |
+| PDF Export | `jspdf` + `html2canvas` | — | DOM screenshot → PDF |
+| Excel Export | `xlsx` | — | Workbook generation |
+| File Save | `file-saver` | — | Browser file download trigger |
+| Calendar Export | (custom ICS) | — | iCalendar format via exportUtils |
+| Error Tracking | `@sentry/nextjs` | ^7.88 | Production error monitoring |
+| HTTP | native `fetch` | — | `credentials:'include'` for HttpOnly cookies |
 
 ---
 
-## 5. Tailwind Configuration
+## 3. Root & Config Files
 
-File: `tailwind.config.ts`
+### `frontend/package.json` — 61 lines
+- **Scripts**: `dev` (`next dev`), `build` (`next build`), `start` (`next start`), `lint` (`next lint`)
+- Lists all production and dev dependencies listed in §2 above.
 
-### Dark Mode
-```ts
-darkMode: 'class'  // toggled by adding/removing 'dark' class on <html>
-```
+### `frontend/next.config.mjs`
+- `images.domains` — allowed external image hosts
+- Environment variable exposure via `env` config
 
-### Extended Color Tokens
+### `frontend/tailwind.config.ts`
+- `content`: `['./src/**/*.{ts,tsx}']`
+- `darkMode: 'class'` — toggled by next-themes
+- `theme.extend`: custom colors, radius, font sizes
 
-| Token | Range | Purpose |
-|-------|-------|---------|
-| `brand.*` | 50–900 | Project accent (sky blue) |
-| `primary.*` | 50–900 | Action elements (blue) |
-| `success.*` | 50–700 | Confirmations, approved states |
-| `warning.*` | 50–700 | Pending, caution states |
-| `danger.*` | 50–700 | Errors, destructive actions |
-| `neutral.*` | 50–900 | Text, borders, backgrounds |
-
-### Font Families
-```ts
-fontFamily: {
-  sans: ['Inter', 'system-ui', 'sans-serif'],
-  mono: ['JetBrains Mono', 'monospace'],
-}
-```
-
-### Content Scanning
-```ts
-content: ['./src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-           './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-           './src/app/**/*.{js,ts,jsx,tsx,mdx}']
-```
+### `frontend/tsconfig.json`
+- `baseUrl: '.'`, `paths: { "@/*": ["./src/*"] }` — enables `@/components/…` imports
+- `target: 'es5'`, `lib: ['dom', 'es2017']`
 
 ---
 
-## 6. Typography System
-
-### Fonts Loaded
-- **Inter** (300–800 weights) — body, UI text
-- **Poppins** (300–800 weights) — headings only
-
-### Heading Scale (responsive)
-
-| Tag | Mobile | Tablet | Desktop |
-|-----|--------|--------|---------|
-| `h1` | `text-2xl` | `text-3xl` | `text-4xl` |
-| `h2` | `text-xl` | `text-2xl` | `text-3xl` |
-| `h3` | `text-lg` | `text-xl` | `text-2xl` |
-| `h4` | `text-base` | `text-lg` | `text-xl` |
-| `h5` | `text-sm` | `text-base` | `text-lg` |
-| `h6` | `text-xs` | `text-sm` | `text-base` |
-
-All headings: `font-semibold tracking-tight`, font-family `Poppins → Inter → sans-serif`.
-
-### Body Text
-- Default: `Inter`, 16px
-- Anti-aliased: `antialiased` applied globally on `<body>`
+## 4. App Directory — `src/app/`
 
 ---
 
-## 7. Color Palette
+### 4.1 Root App Files
 
-### Primary Brand Colors (exact hex values used in code)
+#### `src/app/layout.tsx` — 22 lines
+| Attribute | Value |
+|---|---|
+| Type | Server Component (Root Layout) |
+| Renders | `<html>` → `<body>` → `<Providers>` → `{children}` |
 
-| Role | Light Mode | Dark Mode | Usage |
-|------|-----------|-----------|-------|
-| **Primary Blue** | `#2196F3` | `#2196F3` | Buttons, links, focus rings |
-| **Primary Dark** | `#1976D2` | — | Button hover |
-| **Background** | `#FFFFFF` | `#121212` | Body background |
-| **Surface** | `#F5F5F5` | `#1E1E1E` | Cards, panels |
-| **Surface Elevated** | — | `#2A2A2A` | Modals, dropdowns on dark |
-| **Text Primary** | `#2C2C2C` | `#FFFFFF` | Main headings, body |
-| **Text Secondary** | `#606060` | `#AAAAAA` | Descriptions, labels |
-| **Text Muted** | `#6B6B6B` | `#B3B3B3` | Placeholder, tertiary |
-| **Border** | `#E0E0E0` | `#2A2A2A` | Card/input borders |
-| **Border Strong** | — | `#404040` | Input borders on dark |
+**Imports**: `next/font/google` (Inter), `./globals.css`, `@/components/Providers`
 
-### Semantic Status Colors
+**Key Functionality**:
+- Sets `<html lang="en" suppressHydrationWarning>` — prevents next-themes FOUC flicker
+- Applies Inter variable font to `<body className={inter.className}>`
+- Exports `metadata`: title "Cadence - Timetable Optimization Platform", description
+- All pages implicitly wrapped in `<Providers>` (see §5.1)
 
-| Status | Color | Usage |
-|--------|-------|-------|
-| Success / Approved | `#4CAF50` → hover `#388E3C` | Approved timetables, success toasts |
-| Warning / Pending | `#FF9800` / `#fbbc05` | Pending approvals, warnings |
-| Danger / Error | `#F44336` → hover `#D32F2F` | Errors, rejected, delete |
-| Info | `#2196F3` | Info toasts, neutral data |
-| Google Blue | `#1a73e8` | Login logo, dashboard stat icons |
-| Google Green | `#34a853` | Active courses stat, system health |
-| Google Yellow | `#fbbc05` | Pending approvals stat |
+**Rendered by**: Next.js App Router (root)  
+**Renders**: `Providers`
 
 ---
 
-## 8. Component Inventory
+#### `src/app/globals.css` — 1 445 lines
+The single source of truth for all CSS. Full description in [§12 CSS Architecture](#12-css-architecture).
 
-### 8.1 Button Classes (CSS in globals.css)
+---
 
-All buttons use `@layer components` Tailwind classes:
+#### `src/app/robots.ts` — 15 lines
+| Attribute | Value |
+|---|---|
+| Type | Route Handler (server) |
+| Route | `/robots.txt` |
 
-| Class | Color | Use Case |
-|-------|-------|----------|
-| `.btn-primary` | Blue `#2196F3` | Primary actions (Submit, Save, Generate) |
-| `.btn-secondary` | White/Gray border | Secondary actions (Cancel, Back) |
-| `.btn-success` | Green `#4CAF50` | Confirm, approve |
-| `.btn-danger` | Red `#F44336` | Delete, reject, destructive |
-| `.btn-ghost` | Transparent | Pagination controls, subtle actions |
+**Exports** a Next.js `MetadataRoute.Robots` object:
+- Allows all bots on `/`, `/blog`, `/pricing`, `/product`, `/company`
+- Disallows `/admin/`, `/faculty/`, `/student/`, `/api/`
 
-All share: `px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed`
+---
 
-### 8.2 Input Classes
+### 4.2 Authentication Routes — `(auth)`
 
-| Class | State |
-|-------|-------|
-| `.input-primary` | Default — blue focus ring |
-| `.input-error` | Error state — red border + ring |
-| `.input-field` | With disabled support |
+#### `src/app/(auth)/login/page.tsx` — 396 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` — Client Component |
+| Route | `/login` |
 
-Common styles: `w-full px-4 py-3 rounded-lg text-sm border … focus:outline-none focus:ring-2 transition-colors duration-200`
+**Imports**:
+- `react-hook-form` — `useForm`
+- `@hookform/resolvers/zod`, `zod`
+- `next/navigation` — `useRouter`
+- `next/image`
+- `@/context/AuthContext` — `useAuth`
+- `@/lib/validations` — `loginSchema`, `LoginFormData`
 
-### 8.3 Card Classes
+**Key Functions / Components**:
 
-| Class | Description |
-|-------|-------------|
-| `.card` | Standard card with shadow + hover transition |
-| `.card-flat` | No shadow variant |
-| `.card-header` | Bottom border divider inside card |
-| `.card-title` | `text-xl font-semibold` heading inside card |
-| `.card-description` | `text-sm text-secondary` subtitle |
+| Name | Type | Lines | Description |
+|---|---|---|---|
+| `crawlStep(w)` | helper | ~10 | Returns random crawl step: large near 0%, tiny near 90%. Mirrors Google progress bar deceleration |
+| `useCardProgress()` | hook | ~40 | Imperative API: `{ start, finish, reset, BarElement }` — 4px blue progress bar inside the login card (different from `NavigationProgress`). Used while form submits |
+| `EyeOpen` | component | ~8 | Inline SVG eye icon (password visible) |
+| `EyeOff` | component | ~8 | Inline SVG eye-slash icon (password hidden) |
+| `OutlinedInput` | `forwardRef` component | ~60 | Google Material 3 outlined input field. `forwardRef` so react-hook-form's register ref reaches `<input>`. Handles Chromium autofill via `onAnimationStart`. Label lifts on focus/value |
+| `LoginPage` | default export | ~200 | Main page: `useForm(zodResolver(loginSchema))`, `isLoading`, `showPassword`, `loginError` state. On submit → `useAuth().login()` → `router.push(ROLE_DASHBOARD[role])` |
 
-### 8.4 Badge Classes
+**Constants**: `ROLE_DASHBOARD = { admin: '/admin/dashboard', faculty: '/faculty/dashboard', student: '/student/dashboard' }`
 
-| Class | Color |
-|-------|-------|
-| `.badge` | Base — inline-flex, rounded-full, xs font |
-| `.badge-success` | Green |
-| `.badge-warning` | Yellow/Amber |
-| `.badge-danger` | Red |
-| `.badge-info` | Blue |
+**Key Functionality**:
+- Google-style `#f0f4f9` background, `28px` radius white card
+- 4px progress bar absolute-positioned at top of card (shows during login request)
+- `useForm` with `mode:'onChange'` + `zodResolver(loginSchema)`
+- If user already authenticated on mount → immediate redirect (no blank flash)
+- `loginError` string shown as inline error below fields
 
-### 8.5 Navigation Classes
+**Rendered by**: Next.js App Router  
+**Renders**: `OutlinedInput`, `EyeOpen`/`EyeOff` icons
 
-| Class | Description |
-|-------|-------------|
-| `.nav-link` | Sidebar item — muted text, hover highlights |
-| `.nav-link-active` | Active page — `#f1f1f1` background dark text |
+---
 
-### 8.6 Header Circle Buttons
+### 4.3 Marketing Routes — `(marketing)`
 
-| Class | Description |
-|-------|-------------|
-| `.header-circle-btn` | 40×40 round button — neutral |
-| `.header-circle-btn-primary` | 40×40 round button — blue |
-| `.header-circle-notification` | Notification bell with red badge support |
-| `.header-circle-logo` | 48×48 gradient blue brand mark |
-| `.notification-badge` | `-top-1 -right-1` red dot with count |
+#### `src/app/(marketing)/layout.tsx` — 45 lines
+| Attribute | Value |
+|---|---|
+| Type | Server Layout |
+| Route | Wraps all `/(marketing)/*` pages |
 
-### 8.7 Table Classes
+**Imports**: `MarketingNav`, `MarketingFooter`
 
-| Class | Usage |
-|-------|-------|
-| `.table` | `<table>` — full width |
-| `.table-header` | `<thead>` — light gray background |
-| `.table-header-cell` | `<th>` — padding + text |
-| `.table-row` | `<tr>` — hover effect |
-| `.table-cell` | `<td>` — padding + text style |
+**Key Functionality**:
+- Exports full SEO `metadata` including OG tags, Twitter card, keywords for academic scheduling, `metadataBase: 'https://cadence.edu'`
+- Renders: `<MarketingNav />` + `<main>{children}</main>` + `<MarketingFooter />`
 
-### 8.8 Form Group Classes
+**Renders**: `MarketingNav`, `MarketingFooter`
 
-| Class | Usage |
-|-------|-------|
-| `.form-group` | Wraps label + input |
-| `.form-label` | `text-sm font-medium` label |
+---
 
-### 8.9 GoogleSpinner (`components/ui/GoogleSpinner.tsx`)
+#### `src/app/(marketing)/page.tsx` — 238 lines (Home Page)
+| Attribute | Value |
+|---|---|
+| Type | Server Component |
+| Route | `/` |
 
-Material Design indeterminate circular progress indicator. Uses two SVG `<circle>` elements:
-- **Track ring** — 15% opacity arc, always visible for visual anchor
-- **Animated arc** — uses `.gsp-arc` keyframe (defined in globals.css)
+**Imports**: `HeroSection`, `SocialProof`, `FeatureGrid`, `PricingTable`
 
-```tsx
-// Props
+**Sections** (top to bottom):
+1. `<HeroSection />` — Hero with animated timetable + CTA
+2. `<SocialProof />` — Institution logos
+3. Problem/Solution comparison (`OLD_WAY` vs `CADENCE_WAY` arrays)
+4. How-It-Works 3-step section (`STEPS` array)
+5. `<FeatureGrid />` — Feature deep-dive cards
+6. Customer testimonial quote block
+7. `<PricingTable preview />` — Compact pricing preview
+8. Final CTA section with "Get Started" + "Talk to Sales" buttons
+
+**Renders**: `HeroSection`, `SocialProof`, `FeatureGrid`, `PricingTable`
+
+---
+
+#### Marketing Sub-pages
+
+| File | Lines | Route | Key Components Used |
+|---|---|---|---|
+| `blog/page.tsx` | 157 | `/blog` | Blog post card grid |
+| `company/page.tsx` | 181 | `/company` | Team cards, mission section |
+| `contact/page.tsx` | 116 | `/contact` | `DemoRequestForm` |
+| `legal/privacy/page.tsx` | 61 | `/legal/privacy` | Policy body text |
+| `legal/terms/page.tsx` | 65 | `/legal/terms` | Terms body text |
+| `pricing/page.tsx` | 107 | `/pricing` | `PricingTable` (full, not preview) |
+| `product/page.tsx` | 206 | `/product` | `FeatureGrid` + feature detail rows |
+| `sitemap.ts` | 84 | `/sitemap.xml` | Auto-generates XML sitemap (server) |
+
+---
+
+### 4.4 Admin Routes — `src/app/admin/`
+
+#### `src/app/admin/layout.tsx` — 41 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` — Client Layout |
+| Route | All `/admin/*` |
+
+**Imports**: `AppShell`, `AppShellSkeleton`, `AuthContext`
+
+**Route Guard Logic**:
+```
+isLoading=true   → render <AppShellSkeleton />
+user=null        → router.push('/login')
+role not in [admin, org_admin, super_admin] → router.push('/unauthorized')
+else             → <AppShell>{children}</AppShell>
+```
+
+**Renders**: `AppShellSkeleton` | `AppShell`
+
+---
+
+#### `src/app/admin/dashboard/page.tsx` — 657 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Route | `/admin/dashboard` |
+
+**Imports**: `recharts` (BarChart, PieChart, LineChart, XAxis, YAxis, Tooltip…), `@/lib/api`, `@/types/timetable`
+
+**Sub-component imports**: `AnalyticsOverview`, `QuickActions`, `SystemHealthWidget`
+
+**Key State**: `stats`, `timetables`, `recentActivity`, `systemHealth`, `chartData`, `isLoading`, `selectedPeriod`
+
+**Key Functionality**:
+- Stat tiles: Total Faculty, Total Students, Active Timetables, Pending Approvals
+- Recharts: BarChart (faculty distribution), LineChart (utilization trend), PieChart (room allocation)
+- Recent activity feed (last 10 events)
+- Quick actions: shortcuts to new timetable, add faculty, add student
+- Calls `apiClient.getFaculty()`, `apiClient.getStudents()`, `apiClient.getTimetables()` on mount
+
+**Renders**: `AnalyticsOverview`, `QuickActions`, `SystemHealthWidget`
+
+---
+
+#### Dashboard Sub-components
+
+| File | Lines | Description |
+|---|---|---|
+| `dashboard/components/AnalyticsOverview.tsx` | 32 | 4 stat cards (total faculty, students, timetables, pending approvals) — receives counts as props |
+| `dashboard/components/QuickActions.tsx` | 36 | Action buttons grid: New Timetable, Add Faculty, Add Student, View Reports |
+| `dashboard/components/SystemHealthWidget.tsx` | 18 | API / DB / Redis status badges (green/yellow/red) |
+
+---
+
+#### `src/app/admin/admins/page.tsx` — 132 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Route | `/admin/admins` |
+
+**Imports**: `DataTable`, `PageHeader`, `SearchBar`, `Avatar`, `AddEditUserModal`, `UserDetailPanel`, `@/lib/api`
+
+**Key State**: `users[]`, `isLoading`, `searchTerm`, `currentPage`, `totalCount`, `detailUser: User | null`
+
+**Render pattern** (swap view):
+```
+detailUser !== null  →  <UserDetailPanel user={detailUser} onBack={() => setDetailUser(null)} />
+detailUser === null  →  <PageHeader /> + <DataTable /> + <AddEditUserModal />
+```
+
+**DataTable columns**: Name + Avatar, Email, Role badge, Department, Status badge
+
+**Key Functionality**:
+- `avatarColumn` prop → Google Contacts avatar ↔ checkbox flip on hover
+- `onRowClick` sets `detailUser` for detail panel
+- Multi-select bulk delete via `onDelete(ids[])`
+- Server-side search + pagination
+
+**Renders**: `UserDetailPanel` | (`PageHeader` + `DataTable` + `AddEditUserModal`)
+
+---
+
+#### `src/app/admin/admins/components/UserDetailPanel.tsx` — 127 lines
+| Attribute | Value |
+|---|---|
+| **Total Lines** | 127 |
+| **Imports** | `@/components/shared/Avatar` |
+
+**Props**: `user: User`, `onBack: () => void`
+
+**Layout**:
+- `flex flex-col min-h-full w-full` — fills AppShell content card fully
+- Back arrow `←` button top-left → calls `onBack()`
+- `Avatar size={162}` in horizontal header alongside name/email/role badge
+- 2-column card grid (`grid-cols-1 md:grid-cols-2 gap-4`): Role & Access, Personal Info, Account Details, Activity History
+
+**Renders**: `Avatar`  
+**Rendered by**: `admins/page.tsx`
+
+---
+
+#### `src/app/admin/admins/components/AddEditUserModal.tsx` — 165 lines
+| Attribute | Value |
+|---|---|
+| **Total Lines** | 165 |
+| **Imports** | `react-hook-form`, `@hookform/resolvers/zod`, `@/lib/validations` (`userSchema`), `@/components/FormFields` |
+
+**Form Fields**: Username, Email, Password (create only, hidden on edit), First Name, Last Name, Role (select), Department, Active (toggle)
+
+**Validation**: `zodResolver(userSchema)` — email format, password 8+ chars with complexity rules  
+**Calls**: `onSave(data)` on valid submit
+
+---
+
+#### `src/app/admin/faculty/page.tsx` — 140 lines
+| Route | `/admin/faculty` |
+|---|---|
+
+**Same pattern as admins page**: swap render between `FacultyDetailPanel` and DataTable view.
+
+**DataTable columns**: Name + Avatar, Faculty ID, Designation badge, Department, Specialization, Workload capacity
+
+**Renders**: `FacultyDetailPanel` | (`PageHeader` + `DataTable` + `AddEditFacultyModal`)
+
+---
+
+#### `src/app/admin/faculty/components/FacultyDetailPanel.tsx` — 149 lines
+**Props**: `faculty`, `onBack`, `onEdit`, `onDelete`  
+**Layout**: `Avatar size={162}` + horizontal header + Edit/Delete buttons + 2-col card grid (Personal Details, Workload Limits, Specialization, History)  
+**Renders**: `Avatar`
+
+---
+
+#### `src/app/admin/faculty/components/AddEditFacultyModal.tsx` — 218 lines
+**Validation**: `simpleFacultySchema` (Zod)  
+**Fields**: Faculty ID, First/Middle/Last Name, Designation (enum: Professor / Associate Professor / Assistant Professor / Lecturer / Senior Lecturer), Specialization, Max Weekly Workload, Email, Phone, Department (fetched from API), Status (active / inactive / on_leave)
+
+---
+
+#### `src/app/admin/students/page.tsx` — 126 lines
+**Imports**: `DataTable`, `PageHeader`, `Avatar`, `AddEditStudentModal`, `StudentDetailPanel`  
+**Same swap-render pattern** as faculty and admins pages.  
+**Renders**: `StudentDetailPanel` | (`PageHeader` + `DataTable` + `AddEditStudentModal`)
+
+---
+
+#### `src/app/admin/students/components/StudentDetailPanel.tsx` — 176 lines
+**Props**: `student`, `onBack`, `onEdit`, `onDelete`  
+**Layout**: `Avatar size={162}` + header + 2-col card grid: Academic Details, Personal Details, Hostel & Finance (conditional), History  
+**Renders**: `Avatar`
+
+---
+
+#### `src/app/admin/students/components/AddEditStudentModal.tsx` — 215 lines
+**Validation**: `simpleStudentSchema`  
+**Fields**: Student ID, First/Last Name, Email, Phone, Department (API dropdown), Course (API dropdown), Year, Semester, Electives, Faculty Advisor
+
+---
+
+#### Academic Sub-pages Pattern
+
+All academic CRUD pages follow the same structure:
+- `'use client'` + `useState` + `useCallback` + `useEffect`
+- `DataTable<Entity>` + `PageHeader` + modal component
+- Server-side pagination and search
+
+| File | Lines | Route | Entity | Modal | API Calls |
+|---|---|---|---|---|---|
+| `academic/buildings/page.tsx` | 98 | `/admin/academic/buildings` | Building | `AddEditBuildingModal` (141 ln) | `getBuildings`, `createBuilding`, `updateBuilding`, `deleteBuilding` |
+| `academic/courses/page.tsx` | 165 | `/admin/academic/courses` | Subject/Course | Inline form | `getCourses` |
+| `academic/departments/page.tsx` | 101 | `/admin/academic/departments` | Department | `AddEditDepartmentModal` (143 ln) | `getDepartments`, `createDepartment`, `updateDepartment`, `deleteDepartment` |
+| `academic/programs/page.tsx` | 98 | `/admin/academic/programs` | Program | `AddEditProgramModal` (161 ln) | `getPrograms`, CRUD |
+| `academic/rooms/page.tsx` | 195 | `/admin/academic/rooms` | Room/Classroom | Inline form | `getRooms`, `createRoom`, `updateRoom`, `deleteRoom` |
+| `academic/schools/page.tsx` | 100 | `/admin/academic/schools` | School | `AddEditSchoolModal` (115 ln) | `getSchools`, CRUD |
+
+**`academic/layout.tsx`** (3 lines): passthrough — returns `{children}` only  
+**`academic/page.tsx`** (10 lines): calls Next.js `redirect('/admin/academic/schools')`
+
+---
+
+#### `src/app/admin/timetables/page.tsx` — 622 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Route | `/admin/timetables` |
+
+**Imports**: `@/lib/api`, `@/types/timetable` (`TimetableListItem`), `@/components/timetables/*`, `TimetableListSkeleton`
+
+**Key State**: `timetables: TimetableListItem[]`, `isLoading`, `filterStatus` (all/approved/pending/draft/rejected), `searchTerm`, `viewMode` ('list' | 'grid'), `selectedVariantId`
+
+**Key Functionality**:
+- Filter bar: status tabs (All / Approved / Pending / Draft / Rejected)
+- Search input (searches name, department, semester)
+- List view: table with status badge, score bar, conflicts count, action buttons (View, Compare, Approve/Reject)
+- Grid view: `VariantCard` tile grid
+- Navigate to `/admin/timetables/:id/review` on row click
+- `Link href="/admin/timetables/new"` for + New Timetable button
+
+**Renders**: `TimetableListSkeleton` | (`PageHeader` + filter bar + `DataTable`/`VariantGrid`)
+
+---
+
+#### `src/app/admin/timetables/new/page.tsx` — 218 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Route | `/admin/timetables/new` |
+
+**Imports**: `@/lib/api`, `@/lib/validations` (`timetableGenerationSchema`), `useProgress`, `useSmoothProgress`, `getStageDisplayName`, `formatETA`
+
+**Form Steps**:
+1. **Step 1** — Select: departments (multi), batches, semester, academic year
+2. **Step 2** — Constraints: working days, max daily load, lab constraints, elective slots
+3. **Step 3** — Confirm: summary before submit
+
+**On Submit**:
+1. `apiClient.generateTimetable(formData)` → receives `{ job_id }`
+2. SSE subscription via `useProgress(job_id)` starts
+3. `useSmoothProgress(actual)` animates the progress bar
+4. Stage name shown via `getStageDisplayName(stage)`
+5. ETA via `useSmoothedETA(eta_seconds)` → `formatETA()`
+6. On complete → redirect to `/admin/timetables/status/{jobId}`
+
+---
+
+#### `src/app/admin/approvals/page.tsx` — 455 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Route | `/admin/approvals` |
+
+**Imports**: `@/lib/api/timetable-variants` (`fetchWorkflows`, `approveWorkflow`), `@/types/timetable` (`WorkflowListItem`), Toast
+
+**Sub-components (inline)**:
+| Name | Description |
+|---|---|
+| `SkeletonRow()` | 5-column shimmer row for loading state |
+| `EmptyState()` | "All caught up!" with check icon |
+
+**Key Functions**:
+| Function | Description |
+|---|---|
+| `formatDate(iso)` | Formats ISO date string with `en-IN` locale (DD/MM/YYYY format) |
+| `handleApprove(id)` | `approveWorkflow(id, {action:'approve'})` → refreshes list |
+| `handleReject(id)` | Opens reason input dialog → `approveWorkflow(id, {action:'reject', reason})` |
+
+**Table columns**: Timetable Name, Department, Semester/Year, Submitted By, Submitted At, Status badge, Actions (Approve | Reject)
+
+---
+
+#### `src/app/admin/logs/page.tsx` — 191 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Route | `/admin/logs` |
+
+**Key Functionality**:
+- Renders audit activity log table
+- **Currently uses static mock data** (hardcoded log array) — TODO connect to `GET /api/audit-logs/`
+- Level badge color map: `INFO` → blue, `SUCCESS` → green, `WARNING` → yellow/amber, `ERROR` → red
+- Filter bar: level-based filter tabs
+- Columns: Timestamp, Level badge, Action, User (email), IP Address, Detail/Description
+
+---
+
+### 4.5 Faculty Routes — `src/app/faculty/`
+
+#### `src/app/faculty/layout.tsx` — 33 lines
+**Role guard**: allows `faculty` role only.  
+**Same pattern as admin layout**: `AppShellSkeleton` while loading, `AppShell` when authenticated.
+
+---
+
+#### `src/app/faculty/dashboard/page.tsx` — 327 lines
+| Route | `/faculty/dashboard` |
+|---|---|
+
+**Key Features**:
+- Today's schedule card — upcoming class slots for the day (subject, room, batch, time)
+- Weekly schedule mini-calendar
+- Workload summary (hours this week vs limit)
+- Quick actions: View Full Schedule, Set Preferences, Report Conflict
+- Notification/announcements feed
+- API: `apiClient.getFaculty()`, `apiClient.getTimetables()` filtered by faculty
+
+---
+
+#### `src/app/faculty/preferences/page.tsx` — 155 lines
+| Route | `/faculty/preferences` |
+|---|---|
+
+**Key Features**:
+- Day availability toggles (Monday–Saturday)
+- Time-slot preference matrix: 'prefer' / 'neutral' / 'avoid' per slot
+- Max classes per day stepper
+- Saves via `apiClient.updateFaculty(id, preferences)`
+
+---
+
+#### `src/app/faculty/schedule/page.tsx` — 220 lines
+| Route | `/faculty/schedule` |
+|---|---|
+
+**Key Features**:
+- Full weekly timetable for the authenticated faculty member
+- Uses `TimetableGrid` component (read/write mode)
+- Week navigation (← prev week / next week →)
+- Print and Export buttons (PDF via `exportUtils`)
+
+**Renders**: `TimetableGrid`, `ExportButton`
+
+---
+
+### 4.6 Student Routes — `src/app/student/`
+
+#### `src/app/student/layout.tsx` — 26 lines
+**Role guard**: allows `student` role only. Same AppShell wrapping pattern.
+
+---
+
+#### `src/app/student/dashboard/page.tsx` — 850 lines (largest file)
+| Route | `/student/dashboard` |
+|---|---|
+
+**Key Features**:
+- Today's classes with full slot details (subject, faculty name, room, time)
+- Attendance overview widget (present/absent/percentage per subject)
+- GPA trend sparkline (Recharts LineChart)
+- Upcoming exams/events countdown
+- Quick links: Timetable, Leave Application, Library Portal
+- Course progress cards (syllabus coverage %)
+- API: `apiClient.getStudents()` (self), `apiClient.getTimetables()` (own batch)
+
+---
+
+#### `src/app/student/timetable/page.tsx` — 250 lines
+| Route | `/student/timetable` |
+|---|---|
+
+**Key Features**:
+- Full weekly timetable for the student's batch
+- `TimetableGrid` in read-only mode
+- Week navigation
+- `ExportButton` (PDF / Excel / ICS)
+- Subject colour coding
+
+**Renders**: `TimetableGrid`, `ExportButton`
+
+---
+
+### 4.7 Other Routes
+
+#### `src/app/unauthorized/page.tsx` — 34 lines
+| Route | `/unauthorized` |
+|---|---|
+**Renders**: 403 "Access Denied" page with role info and "Go to Dashboard" link. Link destination determined by `user.role` from `useAuth()`.
+
+---
+
+## 5. Components Directory — `src/components/`
+
+---
+
+### 5.1 Root-level Components
+
+#### `src/components/Providers.tsx` — 21 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` — Root Provider Composition |
+| Rendered by | `app/layout.tsx` |
+
+**Imports**: `ThemeProvider` (next-themes), `AuthProvider`, `ErrorBoundary`, `ToastProvider`, `NavigationProgress`
+
+**Provider nesting** (outermost first):
+```
+ThemeProvider attribute="class" defaultTheme="system"
+  NavigationProgress          ← persists across all routes, outside error boundary
+  ErrorBoundary
+    ToastProvider
+      AuthProvider
+        {children}
+```
+
+**Why this order**: `NavigationProgress` survives errors since it's outside `ErrorBoundary`. `AuthProvider` is innermost so every page component can access auth state immediately.
+
+**Renders**: `NavigationProgress`, `ErrorBoundary`, `ToastProvider`, `AuthProvider`
+
+---
+
+#### `src/components/AuthRedirect.tsx` — 46 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Used on | Login page only |
+
+**Imports**: `@/context/AuthContext`
+
+**Key Functionality**:
+- If `user !== null`: reads `user.role`, redirects to appropriate dashboard
+- No-op when user is not logged in
+- Does NOT redirect on marketing pages (not included in marketing layout)
+- Role → route map: admin → `/admin/dashboard`, faculty → `/faculty/dashboard`, student → `/student/dashboard`
+
+---
+
+#### `src/components/ErrorBoundary.tsx` — 126 lines
+| Attribute | Value |
+|---|---|
+| Type | Class Component (required for React error boundaries) |
+| Rendered by | `Providers.tsx` |
+
+**Key Methods**:
+| Method | Description |
+|---|---|
+| `static getDerivedStateFromError(error)` | Sets `hasError: true, error` on state |
+| `componentDidCatch(error, info)` | Logs to console (+ Sentry in production) |
+| `reset()` | Clears error state for retry |
+
+**Fallback UI**: "Something went wrong" heading, error message (dev-only detail), "Try Again" and "Go Home" buttons.
+
+---
+
+#### `src/components/FormFields.tsx` — 139 lines
+| Attribute | Value |
+|---|---|
+| Type | Client utility components |
+| Used by | All modals and form pages |
+
+**Exported Components**:
+| Component | Props | Description |
+|---|---|---|
+| `FormField` | `label`, `error?`, `required?`, `className?`, `children` | Label wrapper + inline error message |
+| `InputField` | `label`, `error?`, `required?`, `...HTMLInputElement` | `<input>` + label + error. Forwards all native attrs |
+| `SelectField` | `label`, `options: {value,label}[]`, `error?`, `...select` | Styled native `<select>` + label + error |
+| `TextAreaField` | `label`, `rows?`, `error?`, `...textarea` | `<textarea>` + label + error |
+
+---
+
+#### `src/components/LoadingSkeletons.tsx` — 315 lines
+| Attribute | Value |
+|---|---|
+| Type | Client utility components |
+| Used by | All loading states across app |
+
+**Exported Components**:
+| Component | Props | Description |
+|---|---|---|
+| `Skeleton` | `className?`, `style?` | Base block — `animate-pulse bg-gray-200 dark:bg-[#333537] rounded-md` |
+| `TableSkeleton` | `rows?=8`, `columns?=5` | Full `<table>` with header + body shimmers |
+| `TableRowsSkeleton` | `rows?=5`, `columns?=4` | Just `<tr>` elements (for use inside existing `<tbody>`) |
+| `MobileCardsSkeleton` | `cards?=3` | Card-style shimmer for mobile list views |
+| `ListSkeleton` | `items?=5` | List item shimmers |
+| `TimetableCardSkeleton` | — | Single timetable card shimmer |
+| `TimetableListSkeleton` | `cards?=4` | N × `TimetableCardSkeleton` |
+| `VariantCardSkeleton` | — | Variant comparison card shimmer |
+| `TimetableGridSkeleton` | `days?=6`, `slots?=8` | Days × slots grid shimmer |
+
+---
+
+#### `src/components/Pagination.tsx` — 296 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Imported by | `DataTable`, various list pages |
+
+**Props**:
+| Prop | Type | Description |
+|---|---|---|
+| `currentPage` | number | 1-based current page |
+| `totalPages` | number | Total page count |
+| `totalCount` | number | Total record count |
+| `itemsPerPage` | number | Current page size |
+| `onPageChange` | `(page: number) => void` | Callback |
+| `onItemsPerPageChange` | `(size: number) => void` | Callback |
+| `showItemsPerPage` | boolean | Show per-page selector |
+
+**Key Functions**:
+| Function | Description |
+|---|---|
+| `getPageNumbers()` | Smart windowed pagination: always shows 1 and last page, ellipsis (`…`) between windows of 5, max 7 visible buttons |
+
+**Key Functionality**:
+- Keyboard navigation: `←`/`→` for prev/next, `Home`/`End` for first/last
+- "Showing X–Y of Z results" text
+- Items-per-page dropdown: 10 / 25 / 50 / 100
+- Boundary pages: greyed + `cursor-not-allowed`
+- Mobile: shows compact "N of M" format
+
+---
+
+#### `src/components/Toast.tsx` — 199 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Rendered by | `Providers.tsx` |
+
+**Imports**: `react-hot-toast`
+
+**Exports**:
+| Export | Description |
+|---|---|
+| `ToastProvider` | Configures `<Toaster>` with custom position (top-right), duration (4000ms), and CSS styles |
+| `useToast()` | Returns `{ showToast, showSuccessToast, showErrorToast, showWarningToast, showInfoToast }` |
+
+**Toast types**: success (green icon), error (red icon), warning (yellow icon), info (blue icon). All auto-dismiss after 4 seconds.
+
+---
+
+### 5.2 Shell Components — `src/components/shell/`
+
+#### `src/components/shell/AppShell.tsx` — 753 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` — Application Layout Shell |
+| Rendered by | `admin/layout.tsx`, `faculty/layout.tsx`, `student/layout.tsx` |
+
+**Imports**: `AuthContext`, `Avatar`, `ProfileDropdown`, `Breadcrumb`, `next-themes`, `next/image`, 30+ `lucide-react` icons, `next/navigation`
+
+**Key Interfaces**:
+```typescript
+NavItem  = { label: string; href: string; icon: LucideIcon; badge?: boolean; activeBase?: string }
+NavGroup = { label: string; icon: LucideIcon; base: string; children: NavItem[] }
+NavEntry = NavItem | NavGroup
+```
+
+**Nav Definitions**:
+
+`ADMIN_NAV` (9 entries):
+- Dashboard (`/admin/dashboard`)
+- Admins (`/admin/admins`)
+- Faculty (`/admin/faculty`)
+- Students (`/admin/students`)
+- Academic *(NavGroup)* → Buildings, Courses, Departments, Programs, Rooms, Schools
+- Timetables (`/admin/timetables`)
+- Approvals (`/admin/approvals`) ← has pending badge dot
+- Logs (`/admin/logs`)
+
+`FACULTY_NAV` (4): Dashboard, My Schedule, Preferences, Notifications
+
+`STUDENT_NAV` (2): Dashboard, My Timetable
+
+**Key Sub-components**:
+| Component | Description |
+|---|---|
+| `NavItemRow` | Single nav link with active highlight (`bg-[var(--color-nav-active)]`), optional badge dot, icon-only when collapsed (sr-only label preserves accessibility) |
+| `NavGroupRow` | Collapsible nav section with chevron. Auto-expands if current path matches any child. In rail (collapsed) mode: icon-only link to first child |
+| `QuickLink` | Small link row used in the `+ New` dropdown panel |
+
+**Key State**:
+| State | Default | Description |
+|---|---|---|
+| `sidebarOpen` | `true` | Desktop sidebar expanded (284px) vs rail (72px) |
+| `mobileOpen` | `false` | Mobile overlay drawer open |
+| `profileOpen` | `false` | `ProfileDropdown` visible |
+| `showSignOut` | `false` | Sign-out confirmation dialog |
+| `searchOpen` | `false` | Mobile search overlay |
+| `newMenuOpen` | `false` | `+ New` admin dropdown panel |
+| `mounted` | `false` | Hydration guard (SSR-safe class names) |
+
+**Key Functions**:
+| Function | Description |
+|---|---|
+| `resolveUser(u)` | Returns `{ full: string, initials: string }` — concatenates first/last or falls back to username |
+| `handleHamburger()` | Viewport-aware: `< md` → toggles `mobileOpen`, `≥ md` → toggles `sidebarOpen` |
+| `handleSignOut()` | Calls `logout()` → `router.push('/login')` |
+| `isNavItem(e)` | Type guard: `boolean` — `'href' in e` |
+
+**Layout Structure**:
+```
+<div min-h-screen bg-[--color-bg]>
+  <header fixed z-[50] h-[56px] md:h-[64px]>
+    ← Zone 1: w-[72px] md:w-[284px] — hamburger + logo text (hidden when collapsed)
+    ← Zone 2: flex-1 max-w-[720px] — search input, rounded-full, 40px tall
+    ← Zone 3: ml-auto flex items-center gap-2 — mobile search | + New (admin) | Bell | Avatar
+  <aside fixed z-[45] w-[284px] (expanded) / w-[72px] (rail)
+    [transition: width 200ms cubic-bezier(0.4,0,0.2,1)]
+    <nav> list of NavItemRow / NavGroupRow entries
+  <main ml-[72px] md:ml-[284px] / ml-[72px] pt-[56px] md:pt-[64px]>
+    [transition: margin-left 200ms]
+    <div white card rounded-2xl p-3 md:p-6 min-h-[calc(100vh-...)]>
+      <Breadcrumb />
+      {children}
+```
+
+**`+ New` dropdown** (admin only): slides down below `+ New` button — sections: Timetable, People (Admin/Faculty/Student), Academic (Building/Department etc.)
+
+**Renders**: `ProfileDropdown`, `Breadcrumb`, `Avatar`, `NavItemRow`, `NavGroupRow`
+
+---
+
+#### `src/components/shell/ProfileDropdown.tsx` — 204 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Rendered by | `AppShell` (conditionally when `profileOpen=true`) |
+
+**Imports**: `Avatar`, `next-themes` (`useTheme`), lucide-react (X, LogOut, UserIcon, ShieldCheck, Settings, Globe, HelpCircle, Sun, Moon)
+
+**Props**:
+| Prop | Type | Description |
+|---|---|---|
+| `user` | `User \| null` | Current user data |
+| `displayName` | `string` | Full name string |
+| `role` | `string` | Role string |
+| `rolePill` | `string` | Display role (e.g. "Admin") |
+| `mounted` | `boolean` | Hydration guard for theme |
+| `onClose` | `() => void` | Close handler |
+| `onSignOut` | `() => void` | Sign out handler |
+
+**Positioning**: `position: fixed; top: 70px; right: 11px` — anchored top-right of viewport
+
+**Dimensions**: `width: 420px`, `border-radius: 28px`, background `#eaf0f6` (light) / `#202124` (dark)
+
+**Structure** (top → bottom):
+
+| Section | Description |
+|---|---|
+| Loading bar (3px) | `#4285f4`, `animate-[profileLoad_1.4s_ease-in-out_infinite]` — shown when `user===null` |
+| Email row (non-scroll) | Centered `user.email` + `×` close button, `height: 48px` |
+| Avatar + greeting (non-scroll) | `Avatar size={72}` + "Hi, {firstName}!" + camera icon overlay |
+| Scrollable section | `className="profile-scroll"` — `max-height: 280px; overflow-y: auto` |
+| → Role badge | "Logged in as [ADMIN]" pill |
+| → Profile / Sign Out | Split pill button row |
+| → Settings + Theme toggle | `@radix-ui/react-switch` dark mode toggle + settings link |
+| → Language / Help | Two side-by-side buttons |
+| Footer row | "Manage accounts" link + org name |
+
+**z-index**: `z-[991]`  
+**Renders**: `Avatar`
+
+---
+
+#### `src/components/shell/AppShellSkeleton.tsx` — 95 lines
+| Attribute | Value |
+|---|---|
+| Type | Client Component |
+| Rendered by | Route layout files during auth guard check |
+
+**Key Functionality**:
+- Pixel-accurate shimmer matching AppShell visual structure
+- `Shimmer` inline component: `animate-pulse rounded-md bg-gray-200 dark:bg-[#333537]`
+- Structure: fixed header shimmer + fixed sidebar shimmer + content area (4 stat tiles + 5 text rows)
+- Prevents cumulative layout shift (CLS) during auth resolution
+
+---
+
+#### `src/components/shell/Breadcrumb.tsx` — 204 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Rendered by | `AppShell.tsx` (always mounted inside content card) |
+| Imports | `next/navigation` (`usePathname`), `next/link`, lucide-react (`ChevronRight`) |
+
+**Key Constants**:
+- `ROUTES`: array of 25 objects `{ pattern: RegExp, crumbs: BreadcrumbItem[] }` — maps pathname patterns to breadcrumb definitions for every route in the app
+- `SUPPRESS_ROUTES`: 9 route prefixes where breadcrumb is hidden (pages use their own `PageHeader` instead, e.g. `/admin/timetables/new`, `/admin/faculty`)
+
+**Rendering logic**:
+- Single crumb → `<h1 className="page-title">` (no nav element)
+- Multiple crumbs → `<nav aria-label="Breadcrumb">` with `ChevronRight` separator. Ancestor items = `<Link>`, current item = `<span aria-current="page">`
+- Suppressed routes → return `null`
+
+---
+
+### 5.3 Shared Components — `src/components/shared/`
+
+#### `src/components/shared/Avatar.tsx` — 74 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Used by | AppShell header, DataTable (avatarColumn), UserDetailPanel, FacultyDetailPanel, StudentDetailPanel, SlotDetailPanel, ProfileDropdown |
+
+**Imports**: `react` (useRef, useEffect)
+
+**Type**: `type AvatarSize = 'sm' | 'md' | 'lg'` where `sm=32px, md=36px, lg=40px`. Also accepts any `number` for custom sizes.
+
+**Key Constants**:
+| Constant | Value |
+|---|---|
+| `PALETTE` | 10 Material Design colours: `['#4285f4','#ea4335','#fbbc04','#34a853','#ff6d00','#46bdc6','#7c4dff','#e91e63','#00897b','#f06292']` |
+| `SIZE_PX` | `{ sm: 32, md: 36, lg: 40 }` |
+
+**Key Functions**:
+| Function | Description |
+|---|---|
+| `seedColor(name)` | djb2-style hash: iterates chars, `hash = (hash << 5) - hash + charCode → hash % 10` → deterministic `PALETTE[index]` |
+| `initial(name)` | `name[0].toUpperCase()` |
+
+**Props**: `name: string`, `size?: AvatarSize | number`, `imageUrl?: string`, `className?: string`
+
+**CSS Custom Properties** (set via `useEffect` on div ref):
+| Property | Value |
+|---|---|
+| `--av-sz` | `${px}px` — width and height |
+| `--av-fs` | `${Math.round(px * 0.42)}px` — Google's 0.42 ratio for initials font size |
+| `--av-bg` | seeded hex color |
+
+**Tailwind**: `[width:var(--av-sz)] [height:var(--av-sz)] [font-size:var(--av-fs)] [background:var(--av-bg)]` — all arbitrary value syntax, no inline styles
+
+**`.avatar-font`**: CSS class applying `font-family: 'Google Sans', 'Product Sans', Roboto, sans-serif`
+
+---
+
+#### `src/components/shared/DataTable.tsx` — 942 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` — Generic component `DataTable<T>` |
+| Used by | All CRUD list pages across admin section |
+
+**Imports**: `Avatar`, `ConfirmDeleteDialog`, 15+ lucide-react icons, `next/navigation`
+
+**Key Interfaces**:
+```typescript
+Column<T> = { key: keyof T | string; header: string; width?: number; render?: (row: T) => ReactNode }
+EmptyStateConfig = { icon: LucideIcon; title: string; description?: string; action?: { label: string; onClick: () => void } }
+Density = 'comfortable' | 'compact'
+```
+
+**Key Props**:
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `T[]` | Row data |
+| `columns` | `Column<T>[]` | Column definitions |
+| `avatarColumn` | `(row: T) => string \| null` | Enables Google Contacts avatar↔checkbox animation |
+| `selectable` | boolean | Show checkbox column |
+| `onRowClick` | `(row: T) => void` | Detail panel navigation |
+| `onEdit` | `(row: T) => void` | Edit callback (shows pencil icon on hover) |
+| `onDelete` | `(ids: string[]) => void` | Delete callback (single or bulk) |
+| `emptyState` | `EmptyStateConfig` | Custom empty state |
+| `isLoading` | boolean | Shows `SkeletonRows` |
+| `currentPage` | number | For "showing X–Y of Z" |
+| `totalCount` | number | |
+| `itemsPerPage` | number | |
+| `onPageChange` | `(p) => void` | |
+
+**Inline Sub-components**:
+| Component | Description |
+|---|---|
+| `SkeletonRows` | 8 rows of `loading-skeleton` shimmer cells |
+| `EmptyState` | Icon + title + description + optional action button |
+| `BulkToolbar` | Shown above table when items selected: count + Delete + Clear X |
+| `DensityDialog` | Modal with comfortable/compact toggle + row height preview bar |
+| `ColumnOrderDialog` | Modal with draggable column list (HTML5 drag-and-drop) |
+
+**Key Functionality**:
+- **Avatar ↔ Checkbox flip**: on hover, avatar fades out → checkbox fades in. Selected row: avatar hidden, checkbox checked.
+- **Header checkbox**: Has caret dropdown with "All" / "None" / "Select this page" options
+- **Blue selection mode**: selected rows use `var(--row-selected-bg)`, bulk toolbar replaces search area
+- **Toolbar**: Print · Export CSV · ⋮ → Display Density / Column Order
+- **Row hover**: Edit (Pencil) + Delete (Trash2) icons appear from `group-hover:opacity-100`
+- **`handleExport()`**: Generates CSV from current columns, triggers browser download
+- **`handlePrint()`**: `window.print()` (or custom callback)
+- **Pagination**: Built-in prev/next with "Showing X–Y of Z" — or delegates to parent via props
+
+---
+
+#### `src/components/shared/ConfirmDeleteDialog.tsx` — 83 lines
+| Props | `isOpen`, `title`, `message`, `entityName?`, `onConfirm`, `onCancel`, `isDeleting` |
+|---|---|
+
+Modal overlay with entity name highlighted in red, Confirm (red/danger) and Cancel buttons. `isDeleting` prop shows spinner on Confirm button.
+
+---
+
+#### `src/components/shared/ExportButton.tsx` — 159 lines
+| Attribute | Value |
+|---|---|
+| Imports | `@/lib/exportUtils` |
+
+**Props**: `slots: TimetableSlotDetailed[]`, `options: ExportOptions` (`{ filename, title, department, semester, academicYear }`)
+
+**Key Functionality**:
+- Dropdown button with 4 options: Export as PDF, Export as Excel, Export as CSV, Export as Calendar (.ics)
+- Calls respective `exportUtils` functions
+- Shows loading state per format while exporting
+
+---
+
+#### `src/components/shared/PageHeader.tsx` — 97 lines
+| Attribute | Value |
+|---|---|
+| Imports | `next/link`, lucide-react (`ChevronRight`) |
+
+**Props**:
+| Prop | Description |
+|---|---|
+| `title` | Page title string |
+| `count?` | Shows `title (N)` suffix |
+| `loading?` | Hides count, shows blank while loading |
+| `primaryAction?` | `{ label, onClick, icon? }` — renders `btn-primary` button |
+| `secondaryActions?` | Array of secondary buttons |
+| `parentLabel?` | Breadcrumb parent text |
+| `parentHref?` | Makes parentLabel a `<Link>` |
+
+**Rendered as**: `[parentLabel ChevronRight] title (count)`  
+Row layout: title/breadcrumb left, action buttons right aligned.
+
+---
+
+#### `src/components/shared/SearchBar.tsx` — 48 lines
+Controlled input with `Search` icon (lucide). Props: `value`, `onChange`, `placeholder`, `className`.  
+Focus-within: border brightens via CSS `:focus-within` selector.
+
+---
+
+#### `src/components/shared/TimetableGrid.tsx` — 273 lines
+| Attribute | Value |
+|---|---|
+| Imports | `@/types/timetable`, `@/components/timetables/SlotDetailPanel` |
+
+**Props**: `slots: TimetableEntry[]`, `days?: string[]`, `timeSlots?: TimeSlot[]`, `onSlotClick?`, `readOnly?`
+
+**Key Functionality**:
+- CSS Grid: time slots × days matrix layout
+- Slot card rendering: subject name, faculty name, room, batch
+- Badge: `LAB` (purple pill) when `is_lab=true`, `ELECTIVE` (teal italic) when `is_elective=true`
+- Click slot → opens `SlotDetailPanel` (unless `readOnly=true`)
+- Color coding: each subject gets a consistent seeded color (same algorithm as Avatar)
+
+**Renders**: `SlotDetailPanel`
+
+---
+
+### 5.4 UI Components — `src/components/ui/`
+
+#### `src/components/ui/NavigationProgress.tsx` — 241 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` |
+| Mounted by | `Providers.tsx` — stays mounted for entire session |
+| Imports | `next/navigation` (`usePathname`), React |
+
+**Configuration** (`CFG` object):
+| Key | Value | Purpose |
+|---|---|---|
+| `CRAWL_CAP` | 90 | Max % before nav completes |
+| `INITIAL_WIDTH` | 20 | Starting % on click |
+| `TICK_MS` | 200 | Crawl timer interval |
+| `FINISH_HOLD_MS` | 180 | ms at 100% before hiding |
+| `FADE_MS` | 400 | Fade-out animation duration |
+
+**Key Functions**:
+| Function | Description |
+|---|---|
+| `crawlStep(w)` | Returns random step — large (5–20) near 0%, medium near 50%, near-zero (0.2–1.5) near 87%. Mirrors Google's deceleration. |
+| `start()` | Reset to 0% → jump to `INITIAL_WIDTH` → begin `setInterval(TICK_MS)` crawl |
+| `finish()` | Snap to 100% → hold `FINISH_HOLD_MS` → fade opacity to 0 → reset |
+| `applyWidth(w)` | Direct DOM: `barRef.current.style.width = ${w}%` — zero React re-renders |
+| `applyOpacity(op, ms)` | Direct DOM: wrapper opacity with `transition: opacity ${ms}ms` |
+| `stopTick()` | Clears crawl interval |
+| `stopHide()` | Clears finish timeout |
+
+**Link interception**: `document.addEventListener('click', handler, true)` (capture phase)
+- Traverses event target up through ancestors looking for `<a>` tag
+- Skips: `_blank` target, external origins, `mailto:`/`tel:`, hash-only `#…`, same-page links
+
+**Finish trigger**: `useEffect([pathname])` — detects when Next.js path changes after navigation, calls `finish()`
+
+**Visual**: 3px fixed bar at `top:0; left:0; right:0; z-index:9999`, color `#1a73e8`, box-shadow glow tip at right end: `0 0 8px 2px rgba(26,115,232,0.6)`
+
+---
+
+#### `src/components/ui/GoogleSpinner.tsx` — 83 lines
+**Exports**:
+- `GoogleSpinner`: Circular SVG arc cycling through 4 Google colours (blue, red, yellow, green) with CSS animation
+- `LoadingDots`: 3-dot bounce animation via `animation-delay` stagger
+
+---
+
+### 5.5 Timetable Components — `src/components/timetables/`
+
+#### `src/components/timetables/SlotDetailPanel.tsx` — 150 lines
+| Imports | `Avatar`, `@/types/timetable` |
+|---|---|
+
+**Props**: `slot: TimetableSlotDetailed`, `onClose: () => void`, `isOpen: boolean`
+
+**Key Functionality**:
+- Slide-in panel (CSS transform translate-x) from right edge
+- Faculty `Avatar size={32}` with seeded colour
+- Slot details: Subject (name, code, credits), Faculty (name, designation), Room, Batch/Section, Day + Time, Lab/Elective indicators
+- Conflict warnings (if `slot.conflicts` array non-empty)
+
+**Renders**: `Avatar`
+
+---
+
+#### `src/components/timetables/VariantCard.tsx` — 198 lines
+| Imports | `ScoreBar`, `VariantStatusBadge`, `@/types/timetable` |
+|---|---|
+
+**Props**: `variant: TimetableVariant`, `onSelect`, `onView`, `onCompare`, `isSelected?`
+
+**Key Functionality**:
+- Card layout: Variant # header + `VariantStatusBadge`
+- `ScoreBar` for overall score
+- Metric row: Conflicts count, Room Utilization %, Faculty Balance %
+- Action buttons: View, Select (blue when `isSelected`), Compare
+
+---
+
+#### `src/components/timetables/VariantGrid.tsx` — 196 lines
+| Imports | `VariantCard`, `VariantCardSkeleton` |
+|---|---|
+
+**Props**: `variants: TimetableVariant[]`, `isLoading`, `selectedVariantId`, `comparisonIds`, `onSelect`, `onView`, `onCompare`
+
+Renders responsive grid of `VariantCard` items.
+
+---
+
+#### `src/components/timetables/ScoreBar.tsx` — 66 lines
+| Props | `score: number` (0–100), `label?: string`, `showPercent?: boolean` |
+|---|---|
+
+Animated fill bar. Color: `red` (`< 50`), `amber` (`50–75`), `green` (`> 75`). Fill transition `1s ease-out` on mount.
+
+---
+
+#### `src/components/timetables/VariantStatusBadge.tsx` — 79 lines
+Maps `optimization_label` string → styled badge:
+- `"Faculty Optimized"` → blue
+- `"Room Optimized"` → green
+- `"Student Experience"` → purple
+- `"Recommended"` → gold
+- fallback → grey
+
+---
+
+#### `src/components/timetables/CompareGrid.tsx` — 355 lines
+| Imports | `@/lib/api/timetable-variants` (`compareVariants`), `@/types/timetable` |
+|---|---|
+
+**Props**: `variantId1: string`, `variantId2: string`
+
+**Key Functionality**:
+- Fetches comparison data via `compareVariants(id1, id2)` on mount
+- Side-by-side timetable grid (days × time-slots pair)
+- Cell diff highlighting: green border = improved, red = worse, yellow = changed but neutral
+- Legend row at top
+- `ComparisonResult` from types defines shared/changed/added/removed slot arrays
+
+---
+
+#### `src/components/timetables/TimetableGridFiltered.tsx` — 345 lines
+| Imports | `TimetableGrid`, `DepartmentTree`, `@/lib/api` |
+|---|---|
+
+**Props**: `slots: TimetableEntry[]`, `departments: Department[]`, others pass-through
+
+**Key Functionality**:
+- Filter toolbar: Department (via `DepartmentTree`), Faculty (dropdown), Batch (dropdown), Room (dropdown)
+- Active filter chips with × clear button per filter
+- Filtered `slots` passed to `TimetableGrid`
+
+**Renders**: `DepartmentTree`, `TimetableGrid`
+
+---
+
+#### `src/components/timetables/DepartmentTree.tsx` — 120 lines
+| Props | `departments: Department[]`, `selectedIds: string[]`, `onChange: (ids: string[]) => void` |
+|---|---|
+
+Collapsible tree view: Department → Batches. Checkbox per node. Parent auto-checks when all children selected.
+
+---
+
+### 5.6 Marketing Components — `src/components/marketing/`
+
+| File | Lines | Description | Key Props / Exports |
+|---|---|---|---|
+| `HeroSection.tsx` | 138 | Headline + animated timetable + CTA | `AnimatedTimetable` embedded |
+| `SocialProof.tsx` | 99 | Institution logo row + stats ("50+ Institutions") | Static |
+| `FeatureGrid.tsx` | 207 | 6-feature card grid (icon + title + body) | `FEATURES` array |
+| `PricingTable.tsx` | 240 | 3-tier pricing cards (Starter / Professional / Enterprise) | `preview?: boolean` — compact mode for homepage |
+| `AnimatedTimetable.tsx` | 452 | CSS-animated timetable demo — auto-plays slot fill sequence | `isPlaying?: boolean` |
+| `DemoRequestForm.tsx` | 209 | Contact/demo request form | Email + name + org + message fields; `zod` validation |
+| `MarketingNav.tsx` | 203 | Responsive top nav — logo, nav links, Login/Get Demo CTAs, mobile hamburger | `useScrolled` for shadow on scroll |
+| `MarketingFooter.tsx` | 140 | 4-column footer (Product / Company / Legal / Contact) + copyright | Static |
+
+---
+
+## 6. Context — `src/context/`
+
+#### `src/context/AuthContext.tsx` — 132 lines
+| Attribute | Value |
+|---|---|
+| Type | `'use client'` — React Context Provider |
+| Exported hooks | `useAuth()` — returns `AuthContextType` |
+| Rendered by | `Providers.tsx` |
+
+**Imports**: `@/types` (User), `@/lib/api` (apiClient)
+
+**`AuthContextType` interface**:
+```typescript
 {
-  size?: number     // default 48 (px). StrokeWidth scales: size * 0.083, clamped 2.5–4
-  className?: string
-  color?: string    // default '#4285F4' (Google blue). Pass 'white' for colored buttons
-  singleColor?: string  // deprecated alias
-}
-```
-
-**Where used:** Layout loading screens, inline table/button spinners, `PageLoader`, `Spinner` wrapper in `LoadingSkeletons.tsx`.
-
----
-
-## 9. Layout Components
-
-### 9.1 DashboardLayout (`components/dashboard-layout.tsx`)
-
-The **primary shell** used by all authenticated pages. This is the component every admin/faculty/student page renders inside.
-
-**Props:**
-```ts
-{
-  children: React.ReactNode
-  role: 'admin' | 'faculty' | 'student'
-  pageTitle?: string        // Override auto-derived title
-  pageDescription?: string
-}
-```
-
-**State managed:**
-| State | Type | Purpose |
-|-------|------|---------|
-| `sidebarOpen` | `boolean` | Mobile drawer open/close |
-| `sidebarCollapsed` | `boolean` | Desktop icon-only collapse |
-| `showSignOutDialog` | `boolean` | Blur overlay + confirmation |
-| `showSettings` | `boolean` | Settings dropdown |
-| `showNotifications` | `boolean` | Notification panel |
-| `copiedJobRef` | `boolean` | "Copied" feedback on UUID badge click |
-
-**Page title derivation:** Reads `usePathname()` and auto-generates a human-readable title from the last URL segment. If the last segment is a UUID, it shows the parent segment label and a short `#XXXXXXXX` reference badge that copies the full UUID on click.
-
-**Structure:**
-```
-<div min-h-screen bg-white dark:bg-#121212>
-  <Sidebar />                    (fixed left, z-60)
-  <div ml-16 or ml-56>          (slides with collapse)
-    <header sticky top-0 z-30>  (page title + notification + settings)
-    <main p-4 lg:p-6>           (children render here)
-  </div>
-</div>
-
-<!-- Sign-out confirmation dialog (portal-like overlay) -->
-```
-
-**Blur on modal:** When `showSignOutDialog` is true, the main wrapper gets `blur-sm` applied.
-
-### 9.2 Sidebar (`components/layout/Sidebar.tsx`)
-
-**Props:** `sidebarOpen`, `sidebarCollapsed`, `setSidebarOpen`, `setSidebarCollapsed`, `role`, `setShowSignOutDialog`
-
-**Navigation items by role:**
-
-| Role | Nav Items |
-|------|-----------|
-| `admin` | Dashboard · Admins · Faculty · Students · Academic · Timetables · Approvals · Logs |
-| `faculty` | Dashboard · Schedule · Preferences |
-| `student` | Dashboard · Timetable |
-
-**Behavior:**
-- **Mobile** (`< md`): Full-width drawer slides in from left, darkness overlay closes it
-- **Desktop** (`≥ md`): Persistent sidebar, collapses to icon-only (w-16) on toggle
-- Width: `w-56` expanded, `md:w-16` collapsed
-- Active route: `pathname === item.href || pathname.startsWith(item.href + '/')` detection
-- User info shown at bottom (username + email from `localStorage`)
-
-### 9.3 Header (`components/layout/Header.tsx`)
-
-Simplified header used in the legacy/standalone view. The main shell's header is inline inside `DashboardLayout`.
-
-**Features:**
-- Hamburger toggle (≥md: collapses sidebar, <md: opens drawer)
-- Brand logo + "SIH28" title
-- Notification bell with hardcoded badge count (3)
-- Settings dropdown (My Profile / Settings / Sign Out)
-- Click-outside detection via `useRef` + `mousedown` event
-
----
-
-## 10. Page-by-Page Breakdown
-
-### 10.1 Root Page (`app/page.tsx`)
-```tsx
-// Immediately redirects to /login
-redirect('/login')
-```
-No UI rendered.
-
----
-
-### 10.2 Login Page (`app/(auth)/login/page.tsx`)
-
-**Route:** `/login`
-**Access:** Public (no auth)
-
-**Functionality:**
-- `react-hook-form` + `zod` (`loginSchema`) for validation
-- Calls `useAuth().login(username, password)`
-- On success: reads `localStorage.user.role` and pushes to role-appropriate dashboard
-- On failure: shows error toast via `useToast()`
-- Password visibility toggle button (inline SVG eye icons)
-
-**UI Structure:**
-```
-min-h-screen flex items-center justify-center
-  .card max-w-sm sm:max-w-md
-    Logo (gradient rounded-xl "S" + "SIH28" title)
-    "Welcome Back" headline
-    "Sign in to your account" subtitle
-    <form>
-      <FormField name="username" />
-      <FormField name="password" type="password" /> + eye toggle
-      <button type="submit" .btn-primary w-full>
-        (shows GoogleSpinner when loading)
-      </button>
-    </form>
-```
-
-**Styling specifics:**
-- Background: `bg-[#f9f9f9] dark:bg-[#212121]`
-- Card: `.card` utility class
-- Logo: `bg-[#1a73e8]` (Google blue), `rounded-xl`
-
----
-
-### 10.3 Admin Layout (`app/admin/layout.tsx`)
-
-**Auth guard logic:**
-1. While loading → full-screen `GoogleSpinner` on `bg-[#f9f9f9] dark:bg-[#212121]`
-2. No user → `router.push('/login')`
-3. Wrong role → `router.push('/unauthorized')`
-4. Valid admin roles: `admin`, `org_admin`, `super_admin` (case-insensitive)
-5. Renders `<DashboardLayout role="admin">{children}</DashboardLayout>`
-
-Same pattern used for `app/faculty/layout.tsx` (role: `faculty`) and `app/student/layout.tsx` (role: `student`).
-
----
-
-### 10.4 Admin Dashboard (`app/admin/dashboard/page.tsx`)
-
-**Route:** `/admin/dashboard`
-
-**Data fetching:**
-- `GET /api/dashboard/stats/` — total users, active courses, pending approvals, system health
-- Stale-while-revalidate via `sessionStorage` (TTL: 2 minutes)
-- Falls back to zero values on error (never crashes)
-
-**Stats Cards (4-column grid → 2-col tablet → 1-col mobile):**
-
-| Card | Icon BG | Metric | Extra |
-|------|---------|--------|-------|
-| Total Users | `#1a73e8` blue | `stats.totalUsers` | "↗ 12% vs last month" |
-| Active Courses | `#34a853` green | `stats.activeCourses` | "↗ 8% vs last month" |
-| Pending Approvals | `#fbbc05` yellow | `stats.pendingApprovals` | Clickable → `/admin/approvals` + `badge-warning` |
-| System Health | `#34a853` green | 98% | "All services online" |
-
-**Faculty Availability Section:**
-- Grid of faculty toggle cards (1→2→3→4 column responsive grid)
-- Each card: faculty name, department, custom CSS toggle switch (peer-checked blue)
-- Data from `data.faculty` in dashboard stats response
-
-**Strategic Actions Panel:**
-- Routes to: `/admin/users`, `/admin/logs`, `/admin/settings`
-- Simulated: `backup` (2s delay), `reports` (1.5s delay) — show info/success toasts
-
-**Data Actions Panel:**
-- `import` → simulated CSV import (2s)
-- `export` → simulated PDF export (1.5s)
-- `backup` → shared simulate function
-- `restore` → `window.confirm()` guard → 3s simulation
-
----
-
-### 10.5 Admin Timetables (`app/admin/timetables/page.tsx`)
-
-**Route:** `/admin/timetables`
-
-**Key State:**
-```ts
-viewMode: 'grid' | 'list'          // toggle between card grid and list
-timetables: TimetableListItem[]    // from /api/generation-jobs/?page=N&page_size=20
-loading: boolean
-currentPage: number
-totalCount: number
-runningJobs: RunningJob[]          // derived from timetables (no extra API call)
-```
-
-**Caching Pattern:** Seeded from `sessionStorage` ('admin_timetables_cache', 60s TTL) so the page renders data instantly while a background refresh runs.
-
-**Background Polling:** `setInterval` every 8 seconds while active (pending/running) jobs exist. Stops after 2 consecutive polls with no active jobs.
-
-**Prefetch Warmup:** After each load, fetches variants for the 3 most recent completed/failed jobs (fire-and-forget) to warm Redis cache.
-
-**`transformJobs()` function:** Maps raw API response to `TimetableListItem` shape:
-```ts
-TimetableListItem {
-  id: string           // job_id or id
-  department: string   // organization_name fallback 'All Departments'
-  batch: string | null
-  semester: number
-  academic_year: string
-  status: 'approved' | 'pending' | 'draft' | 'rejected' | 'running' | 'completed' | 'failed'
-  lastUpdated: string  // formatted date
-  conflicts: number
-  score: number | null
-}
-```
-
-**Status color mapping:**
-```
-approved  → green (#4CAF50 bg-10%)
-pending   → orange (#FF9800 bg-10%)
-draft     → gray (#6B6B6B)
-rejected  → red (#F44336 bg-10%)
-```
-
-**Status icons:** ✅ approved · ⏳ pending · 📝 draft · ❌ rejected · 📄 default
-
-**Grouped view:** `getGroupedBySemester()` (memoized) groups by `academic_year-semester` key.
-
-**Skeleton:** `TimetableListSkeleton` shown only on first load (no stale data).
-
----
-
-### 10.6 Admin Faculty (`app/admin/faculty/page.tsx`)
-
-**Route:** `/admin/faculty`
-
-**State:**
-```ts
-faculty: Faculty[]
-isLoading: boolean       // first load
-isTableLoading: boolean  // pagination only
-searchTerm: string       // 500ms debounced
-selectedDepartment: string
-currentPage, totalPages, totalCount, itemsPerPage: number
-isModalOpen: boolean
-selectedFaculty: Faculty | null   // null = create, Faculty = edit
-isDeleting: number | null         // ID of faculty being deleted
-```
-
-**API Calls:**
-- `apiClient.getFaculty(page, pageSize, search)` — paginated list
-- `apiClient.createFaculty(data)` — POST
-- `apiClient.updateFaculty(id, data)` — PUT
-- `apiClient.deleteFaculty(id)` — DELETE
-
-**Faculty interface:**
-```ts
-{
-  id: number
-  faculty_id: string          // e.g. "FAC001"
-  faculty_code: string
-  first_name, middle_name?, last_name: string
-  designation: string         // Professor, Associate Professor, etc.
-  specialization: string
-  department: { dept_id, dept_name }
-  max_workload: number
-  status: string              // active | inactive | on_leave
-  email?: string
-  phone?: string
-}
-```
-
-**UI Pattern (mobile/desktop dual view):**
-- Mobile: card per faculty with inline edit/delete buttons
-- Desktop: table with `<td>` cells for each field
-- Both use `GoogleSpinner` during initial load
-- Deletion: `isDeleting` state shows loading spinner on that row's delete button
-
-**Child Component:** `AddEditFacultyModal` inside `./components/` — controlled by `isModalOpen` + `selectedFaculty`
-
----
-
-### 10.7 Admin Students (`app/admin/students/page.tsx`)
-
-**Route:** `/admin/students`
-
-Identical pattern to Faculty page. Key differences:
-
-**Student interface:**
-```ts
-{
-  id: number
-  student_id: string       // e.g. "STU001"
-  name: string
-  email, phone: string
-  department: { department_id, department_name }
-  course: { course_id, course_name }
-  electives: string
-  year: number             // 1–4
-  semester: number         // 1–8
-  faculty_advisor: { faculty_id, faculty_name } | null
-}
-```
-
-**Filter states:** `searchTerm`, `selectedDepartment`, `selectedYear` (not yet wired to API).
-
----
-
-### 10.8 Admin Approvals (`app/admin/approvals/page.tsx`)
-
-**Route:** `/admin/approvals`
-**Status:** Mostly static/demo data. Not yet wired to real API.
-
-**Stats cards (4-col grid):**
-- Total Pending: 12 (yellow bg)
-- High Priority: 3 (red font)
-- Approved Today: 8 (green font)
-- Avg. Response Time: 2.4h (blue font)
-
-**Approval items:** Hardcoded array of `{ id, type, requester, department, date, priority }`.
-
-**Filter selects:** "All Types" and "All Priority" (UI only, no filter logic).
-
-**Dual view pattern:**
-- Mobile: card per approval item
-- Desktop: full table
-- Each item has "Approve" (`btn-success`) and "Reject" (`btn-danger`) buttons
-- `handleApprove(id)` / `handleReject(id)` — currently just `console.log`
-
-**Priority badge colors:**
-- High → `badge-danger`
-- Medium → `badge-warning`
-- Low → `badge-success`
-
----
-
-### 10.9 Admin Logs (`app/admin/logs/page.tsx`)
-
-**Route:** `/admin/logs`
-**Status:** Static demo data.
-
-**Log levels and badge mapping:**
-| Level | Badge Class |
-|-------|-------------|
-| SUCCESS | `badge-success` |
-| WARNING | `badge-warning` |
-| ERROR | `badge-danger` |
-| INFO | `badge-info` |
-
-**UI:** Filter by level dropdown + search input (no functionality). Mobile cards + desktop table dual view.
-
----
-
-### 10.10 Admin Academic (`app/admin/academic/`)
-
-**Route:** `/admin/academic/`
-**Root page:** Immediately redirects to `/admin/academic/schools` via `router.replace()`.
-
-**Layout (`app/admin/academic/layout.tsx`):** Renders an `InContentNav` tab bar with items:
-- Schools · Departments · Buildings · Rooms · Courses · Programs
-
-Each sub-route renders a CRUD management page for the corresponding entity.
-
----
-
-### 10.11 Faculty Dashboard (`app/faculty/dashboard/page.tsx`)
-
-**Route:** `/faculty/dashboard`
-
-**Data sources (parallel fetch via `Promise.all`):**
-1. `GET /api/faculty/profile/` → `FacultyProfile` object
-2. `apiClient.getLatestApprovedTimetable()` → timetable/schedule data
-
-**Caching:** `sessionStorage` 'faculty_profile_cache' — 5 minute TTL.
-
-**FacultyProfile interface:**
-```ts
-{
-  faculty_id, faculty_code, faculty_name: string
-  email, phone, department, department_code: string
-  specialization, qualification, designation: string
-  max_workload_per_week: number
-  is_active: boolean
-  assigned_courses: Subject[]   // list of teaching assignments
-  total_courses: number
-}
-```
-
-**Subject (assigned course) interface:**
-```ts
-{
-  offering_id, course_code, course_name: string
-  credits: number
-  department: string | null
-  academic_year: string
-  semester_type: string
-  semester_number: number
-  total_enrolled, max_capacity, number_of_sections: number
-  offering_status: string
-}
-```
-
-**Export:** `ExportButton` lazy-loaded via `dynamic()` to defer ~800KB of jsPDF/html2canvas/xlsx from the initial bundle.
-
-**TimetableGrid:** `<TimetableGrid schedule={mySchedule} isAdminView={false} />` — read-only, no click handler.
-
----
-
-### 10.12 Faculty Preferences (`app/faculty/preferences/page.tsx`)
-
-**Route:** `/faculty/preferences`
-**Status:** Static UI, not wired to API.
-
-**Two-column grid cards:**
-
-1. **Time Preferences**
-   - Preferred Start Time (select: 08:00, 09:00, 10:00 AM)
-   - Preferred End Time (select: 04:00, 05:00, 06:00 PM)
-   - Preferred Days (checkboxes Mon–Sat, Saturday defaultUnchecked)
-
-2. **Course Preferences**
-   - Max Classes Per Day (select: 2–5)
-   - Preferred Room Type (select: Any, Lecture Hall, Laboratory, Seminar Room)
-   - Break Between Classes (select: 15/30/45/60 min)
-
-**Availability Calendar:**
-- Grid 7 columns (Time + Mon–Sat)
-- Time slots 09:00–16:00
-- Each cell is a toggle button with a 12×12 green dot (all showing available, no toggle logic)
-
----
-
-### 10.13 Faculty Schedule (`app/faculty/schedule/`)
-
-Renders the faculty's weekly schedule in `TimetableGrid` format.
-
----
-
-### 10.14 Student Dashboard (`app/student/dashboard/page.tsx`)
-
-**Route:** `/student/dashboard`
-
-**Data sources (parallel `Promise.all`):**
-1. `GET /api/student/profile/` → `StudentProfile`
-2. `apiClient.getLatestApprovedTimetable()` → timetable data
-
-**Caching:** `sessionStorage` 'student_profile_cache' — 5 minute TTL.
-
-**StudentProfile interface:**
-```ts
-{
-  student_id, enrollment_number, roll_number: string
-  student_name, email, phone: string
-  department, department_code, program, program_code: string
-  current_semester, current_year, admission_year: number
-  cgpa, total_credits_earned, current_semester_credits: number | null
-  academic_status: string | null
-  is_active: boolean
-  enrolled_courses: Course[]
-  total_courses: number
-}
-```
-
-**Today's classes:** Derived by filtering timetable slots for the current weekday, then labeling each as `upcoming | current | completed` based on parsed start time vs `new Date()`.
-
-**`ExportButton`** lazy-loaded (same pattern as faculty dashboard).
-
----
-
-### 10.15 Student Timetable (`app/student/timetable/page.tsx`)
-
-**Route:** `/student/timetable`
-
-**Data:** `GET /api/timetable/student/me/` → `{ success, slots, student }`
-
-**Caching:** `sessionStorage` 'student_schedule_cache' — 10 minute TTL.
-
-**Local TimetableGrid implementation** (page-level, not the shared component):
-- Days: Monday–Saturday
-- Time slots: `['08:00', '09:00', ..., '16:00']`
-- Slot matching: `s.day === day && s.time_slot?.startsWith(time)`
-- Each cell shows: subject_code (bold), faculty_name, room_number
-- Error state: shows ⚠️ icon + retry button
-
----
-
-## 11. Authentication Flow
-
-### 11.1 AuthContext (`context/AuthContext.tsx`)
-
-**Provider:** `<AuthProvider>` wraps the entire app in `RootLayout`.
-
-**Context value:**
-```ts
-{
-  user: User | null
-  login: (username, password) => Promise<void>
+  user: User | null          // current authenticated user
+  login: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  isLoading: boolean
-  error: string | null
+  isLoading: boolean         // true during initial session check
+  error: string | null       // last auth error message
 }
 ```
 
-**`User` interface:**
-```ts
+**Key Implementation Patterns**:
+
+**1. Synchronous localStorage init** (prevents blank screen flash):
+```typescript
+const [user, setUser] = useState<User | null>(() => {
+  const stored = localStorage.getItem('user')
+  return stored ? JSON.parse(stored) : null
+})
+```
+First render already has user data — layout guards can immediate render AppShell instead of skeleton.
+
+**2. React 18 StrictMode double-probe prevention**:
+```typescript
+const authChecked = useRef(false)
+useEffect(() => {
+  if (authChecked.current) return
+  authChecked.current = true
+  checkAuth()
+}, [])
+```
+Prevents React 18 dev-mode running effects twice, which would cause two simultaneous `/auth/me` calls.
+
+**3. Background session verification** (`checkAuth`):
+- Calls `apiClient.getCurrentUser({ noRedirectOn401: true })`
+- On success: updates user in state + localStorage (picks up server-side changes to user data)
+- On 401/error: clears user from state + localStorage
+
+**`login(username, password)`**:
+1. `setIsLoading(true)`
+2. `apiClient.login({ username, password })`
+3. Success → destructure response, store `userWithoutPassword` in state + `localStorage.setItem('user', ...)`
+4. Error → `setError(message)`, re-throw for caller
+
+**`logout()`**:
+1. `apiClient.logout()` — POST `/auth/logout/`, backend blacklists refresh token
+2. `setUser(null)`, `localStorage.removeItem('user')`
+3. Does NOT redirect — calling components handle navigation
+
+---
+
+## 7. Hooks — `src/hooks/`
+
+#### `src/hooks/useProgress.ts` — 553 lines
+
+**Exports**:
+
+---
+
+**`useProgress(jobId, onComplete?, onError?)`**
+
+Subscribes to SSE stream for timetable generation job progress.
+
+**Returns**:
+```typescript
 {
-  id: number
-  username, email, role: string   // role: 'admin' | 'faculty' | 'student'
-  first_name?, last_name?: string
-  organization?: string            // organization_id
-  department?: string              // department_id
+  progress: number            // 0–100 overall
+  stage: string               // current stage ID
+  message: string             // human-readable status message
+  eta: number | null          // estimated seconds remaining
+  isConnected: boolean        // SSE connection active
+  isComplete: boolean
+  isError: boolean
+  errorMessage: string | null
+  details: ProgressDetails    // per-stage substats
 }
 ```
 
-**Mount behavior:** On mount, makes `GET /api/auth/me/` to restore session from existing HttpOnly cookies. If 401 → user stays `null`.
+**SSE URL**: `GET /api/timetable/jobs/{jobId}/progress/` with `EventSource({ withCredentials: true })`
 
-**`login()` flow:**
-1. `POST /api/auth/login/` with `{ username, password }`
-2. Backend sets JWT access + refresh tokens in HttpOnly cookies
-3. Frontend stores only non-sensitive user metadata in `localStorage`
+**Events listened**:
+| Event | Handler |
+|---|---|
+| `connected` | Sets `isConnected = true` |
+| `progress` | Updates all state from `JSON.parse(event.data)` |
+| `done` | Sets `isComplete = true`, calls `onComplete?.(result)` |
+| `error` | Sets `isError = true`, calls `onError?.(message)` |
 
-**`logout()` flow:**
-1. `POST /api/auth/logout/` — blacklists refresh token on backend
-2. Clears `localStorage.user`
-3. Cookies deleted by backend response
+**Reconnect logic** (exponential backoff):
+```
+delay = Math.min(1_000 * 2^attempt, 10_000)
+if attempt >= 5: give up, setIsError(true)
+```
+Uses `reconnectCountRef` (not state) to avoid stale closures in `onerror`.
 
-**Security:** JWT tokens are **never accessible to JavaScript** (HttpOnly). This prevents XSS token theft. The pattern mirrors Google/Meta's authentication approach.
+---
 
-### 11.2 Token Refresh (`lib/auth.ts`)
+**`fetchProgressSnapshot(jobId)`**
 
-- `refreshAccessTokenViaCookie()`: `POST /api/auth/refresh/` with `credentials: 'include'`
-- Uses a singleton `refreshPromise` to deduplicate concurrent refresh calls
-- Automatic retry happens inside `ApiClient.request()` on any 401 response
-- After failed refresh: imperatively redirects to `/login` via `window.location.href` (not `useRouter` — class method cannot use hooks)
+One-shot HTTP `GET /api/timetable/jobs/{jobId}/progress/` — returns `Progress` object without SSE subscription. Used on page reload/refresh.
 
-### 11.3 Route Protection Pattern
+---
 
-Every role-specific `layout.tsx` follows this pattern:
+**`useSmoothProgress(actualProgress, config?)`**
+
+Physics-based smooth animation of the progress bar.
+
+**Returns**: `smoothProgress: number` — 60 FPS animated value chasing `actualProgress`
+
+**Physics model** (runs in `requestAnimationFrame`):
+```
+velocity += (target - current) * acceleration  // Hooke's law spring
+velocity *= damping                            // 0.78 by default
+current  += velocity
+```
+
+**Constraints**:
+- Monotonic: `current` never decreases (even if `actualProgress` momentarily dips)
+- Cap: `current ≤ target` (never exceeds backend-provided value)
+- Completion easing: when `target = 100`, switches to `cubic-ease-out` over 600ms
+
+**Default config**: `{ acceleration: 0.12, damping: 0.78 }`
+
+---
+
+**`useSmoothedETA(actualETA, alpha?)`**
+
+Exponential smoothing for ETA display — prevents jumpy ETA numbers.
+
+```
+smoothedETA = alpha * actualETA + (1 - alpha) * previousSmoothedETA
+```
+Default `alpha = 0.15` (aggressive smoothing — small changes have little visible effect).
+
+---
+
+**`formatETA(seconds: number | null): string`**
+
+| Input | Output |
+|---|---|
+| `null` | `"Calculating..."` |
+| `< 60` | `"30s"` |
+| `60–3599` | `"2m 30s"` |
+| `>= 3600` | `"1h 5m"` |
+
+---
+
+**`getStageDisplayName(stage: string): string`**
+
+| Internal stage | Display name |
+|---|---|
+| `initializing` | Preparing Schedule |
+| `clustering` | Organizing Courses |
+| `cpsat_solving` | Building Schedule |
+| `ga_optimization` | Optimizing Schedule |
+| `rl_refinement` | Finalizing Schedule |
+| `variant_generation` | Generating Variants |
+| `completed` | Schedule Ready |
+| *(anything else)* | Capitalized + spaces for underscores |
+
+---
+
+#### `src/hooks/useScrollReveal.ts` — 66 lines
+
+**`useScrollReveal(threshold?: number, once?: boolean)`**
+
+Uses `IntersectionObserver` to trigger CSS reveal animations when elements enter the viewport.
+
+**Returns**: `{ ref: RefObject<Element>, visible: boolean }`
+
+**Parameters**:
+- `threshold` (default `0.1`) — `0.0` = any pixel, `1.0` = fully visible
+- `once` (default `true`) — if true, stops observing after first intersection
+
+**Usage**:
 ```tsx
-const { user, isLoading } = useAuth()
-
-// While loading: show GoogleSpinner full screen
-// No user: router.push('/login')
-// Wrong role: router.push('/unauthorized')
-// Valid: render <DashboardLayout role={role}>{children}</DashboardLayout>
+const { ref, visible } = useScrollReveal(0.2)
+return <div ref={ref} className={visible ? 'fade-in' : 'opacity-0'}> ... </div>
 ```
 
 ---
 
-## 12. API Client Layer
+**`useCountUp(target: number, duration?: number, trigger?: boolean)`**
 
-### 12.1 Main ApiClient (`lib/api.ts`)
+Animates an integer counter from 0 to `target` using `requestAnimationFrame`.
 
-A class-based HTTP client. All requests use `credentials: 'include'` (cookie auth).
+**Returns**: `currentValue: number`
 
-**Base URL:** `process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'`
+**Parameters**:
+- `duration` (default `2000`) — animation duration in ms
+- `trigger` (default `true`) — starts animation immediately; pass `visible` from `useScrollReveal` to delay start until in view
 
-**Key methods:**
-```ts
-// Auth
-login(credentials: { username, password })
-logout()
-getCurrentUser()
-
-// Users
-getUsers(page, pageSize, search)
-getUser(id), createUser(data), updateUser(id, data), deleteUser(id)
-
-// Faculty
-getFaculty(page, pageSize, search)
-createFaculty(data), updateFaculty(id, data), deleteFaculty(id)
-
-// Students
-getStudents(page, pageSize, search)
-createStudent(data), updateStudent(id, data), deleteStudent(id)
-
-// Academic
-getDepartments(page, pageSize, search, organizationId)
-getBuildings(), getRooms(), getCourses(), getPrograms()
-
-// Timetable
-getLatestApprovedTimetable()
-// ... and many more
-```
-
-**Auto-refresh:** On any 401, calls `refreshToken()` once and retries. If refresh fails, redirects to `/login`. Guards against redirect loops: only redirects if `!pathname.startsWith('/login')`.
-
-### 12.2 Timetable API (`lib/api/timetable.ts`)
-
-Separate module for timetable-specific operations using two base URLs:
-- `DJANGO_API_BASE` (port 8000) — CRUD/workflow endpoints
-- `FASTAPI_BASE` (port 8001) — generation engine
-- `FASTAPI_WS_BASE` — WebSocket base
-
-```ts
-// Key functions
-fetchTimetableWorkflows(filters?)       → TimetableWorkflow[]
-fetchTimetableVariants(filters?)        → TimetableVariant[]
-selectVariant(variantId)               → { message, timetable_id }
-generateTimetable(request)             → GenerateTimetableResponse
-fetchGenerationJobStatus(jobId)        → GenerationJob
-approveTimetable(workflowId, comments?)
-rejectTimetable(workflowId, reason)
-```
-
-Graceful error handling: returns `[]` on 5xx rather than throwing.
-
-### 12.3 Optimized Client (`lib/api/optimized-client.ts`)
-
-In-memory `Map<string, { data, expires }>` cache with configurable TTL:
-
-```ts
-fetchTimetablesOptimized()     // 2 min TTL
-fetchFacultyOptimized(pageSize) // 5 min TTL
-fetchDepartmentsOptimized(orgId) // 10 min TTL
-clearCache()
-```
-
-Features 5-second fetch timeout via `AbortController`.
+**Easing**: Cubic ease-out — fast start, slow finish. Formula: `easedT = 1 - (1-t)^3`
 
 ---
 
-## 13. Custom Hooks
+## 8. Lib — `src/lib/`
 
-### 13.1 `usePaginatedData<T>` (`hooks/usePaginatedData.ts`)
+#### `src/lib/api.ts` — 606 lines
 
-Generic hook for server-side paginated lists.
+**`API_BASE_URL`**: `process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'`
 
-**Options:**
-```ts
-{
-  fetchFn: (page: number, pageSize: number, search: string) => Promise<any>
-  initialPageSize?: number   // default 25
-  enableSearch?: boolean     // default true
-}
+**Class `ApiClient`**:
+
+**`request<T>(endpoint, options?)`** (private base method):
+```typescript
+options defaults:
+  credentials: 'include'       // sends HttpOnly cookies
+  headers: { 'Content-Type': 'application/json' }
+  noRedirectOn401: false       // if true, returns null instead of redirecting
 ```
 
-**Returns:**
-```ts
-{
-  data: T[]
-  isLoading: boolean       // first page load
-  isTableLoading: boolean  // pagination changes
-  error: string | null
-  searchTerm, setSearchTerm: string
-  currentPage, setCurrentPage: number
-  totalPages, totalCount: number
-  itemsPerPage, setItemsPerPage: number
-  refetch: () => void
-}
-```
+**401 handling**:
+1. Call `refreshToken()` → POST `/auth/refresh/`
+2. If refresh succeeds → retry original request once
+3. If refresh fails → `window.location.href = '/login'`
+4. If `noRedirectOn401=true` → skip redirect, return `null`
 
-**Debounced search:** 500ms debounce, auto-resets to page 1.
+**Complete method reference**:
 
-### 13.2 `useProgress` (`hooks/useProgress.ts`)
+*Auth*
+| Method | Endpoint | Description |
+|---|---|---|
+| `login(data)` | POST `/auth/login/` | Sets HttpOnly cookie; returns `{ user, … }` |
+| `logout()` | POST `/auth/logout/` | Blacklists refresh token |
+| `getCurrentUser(opts?)` | GET `/auth/user/` | Verifies session; accepts `noRedirectOn401` |
 
-Real-time progress subscription via **Server-Sent Events (SSE)**.
+*Users / Admins*
+| Method | Endpoint |
+|---|---|
+| `getUsers(page, search)` | GET `/users/` |
+| `getUser(id)` | GET `/users/{id}/` |
+| `createUser(data)` | POST `/users/` |
+| `updateUser(id, data)` | PATCH `/users/{id}/` |
+| `deleteUser(id)` | DELETE `/users/{id}/` |
 
-**Signature:**
-```ts
-useProgress(
-  jobId: string | null,
-  onComplete?: (data: ProgressData) => void,
-  onError?: (error: string) => void
-): UseProgressReturn
-```
+*Departments*: `getDepartments`, `getDepartment(id)`, `createDepartment`, `updateDepartment`, `deleteDepartment`  
+*Buildings*: `getBuildings`, `getBuilding(id)`, `createBuilding`, `updateBuilding`, `deleteBuilding`  
+*Schools*: `getSchools`, `getSchool(id)`, `createSchool`, `updateSchool`, `deleteSchool`  
+*Programs*: `getPrograms`, `getProgram(id)`, `createProgram`, `updateProgram`, `deleteProgram`  
+*Courses*: `getCourses`, `getCourse(id)`, `createCourse`, `updateCourse`, `deleteCourse`  
+*Subjects*: `getSubjects`, `getSubject(id)`, `createSubject`, `updateSubject`, `deleteSubject`  
+*Faculty*: `getFaculty(page?, search?)`, `getFacultyMember(id)`, `createFaculty`, `updateFaculty`, `deleteFaculty`  
+*Students*: `getStudents(page?, search?)`, `getStudent(id)`, `createStudent`, `updateStudent`, `deleteStudent`  
+*Rooms*: `getRooms`, `getRoom(id)`, `createRoom`, `updateRoom`, `deleteRoom` + aliases `getClassrooms`, `createClassroom`, `updateClassroom`, `deleteClassroom`  
+*Labs*: `getLabs`, `getLab(id)`, `createLab`, `updateLab`, `deleteLab`  
 
-**Returns:**
-```ts
-{
-  progress: ProgressData | null
-  isConnected: boolean
-  error: string | null
-  reconnectAttempt: number
-}
-```
+*Timetables*
+| Method | Endpoint | Description |
+|---|---|---|
+| `getTimetables(filters?)` | GET `/timetable/workflows/` | List with optional status/dept filter |
+| `getTimetable(id)` | GET `/timetable/workflows/{id}/` | |
+| `getTimetableSlots(id)` | GET `/timetable/workflows/{id}/slots/` | |
+| `generateTimetable(data)` | POST `/timetable/generate/` | Starts generation job; returns `{job_id}` |
+| `getGenerationJobs()` | GET `/timetable/jobs/` | |
+| `getGenerationJob(id)` | GET `/timetable/jobs/{id}/` | |
 
-**ProgressData shape:**
-```ts
-{
-  job_id: string
-  stage: string            // 'Clustering', 'OR-Tools solver', etc.
-  stage_progress: number   // 0–100 within current stage
-  overall_progress: number // 0–100 overall
-  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
-  eta_seconds: number | null
-  started_at: number       // Unix timestamp
-  last_updated: number
-  metadata: Record<string, any>
-}
-```
-
-**SSE events listened:**
-| Event | Behavior |
-|-------|---------|
-| `connected` | Sets `isConnected = true`, resets reconnect counter |
-| `progress` | Updates `ProgressData` state |
-| `done` | Calls `onComplete`, closes EventSource |
-| `error` (named) | Logs, does not close (server already closed) |
-
-**Exponential backoff:** On `onerror`, `reconnectTimeoutRef` delays next connection attempt with increasing delays up to a configurable max. `reconnectCountRef` (a `useRef`) tracks actual count to avoid stale closure issues from React state.
-
-**Security:** `EventSource` created with `{ withCredentials: true }` to send HttpOnly auth cookies to the SSE endpoint.
+**Export**: `export default new ApiClient(API_BASE_URL)` — singleton `apiClient`
 
 ---
 
-## 14. Types & Interfaces
+#### `src/lib/auth.ts` — 91 lines
 
-### 14.1 `types/index.ts` — User
-```ts
-interface User {
+**`authenticatedFetch(url, options)`**:
+- Wrapper around `fetch` with `credentials: 'include'`
+- On 401: calls `refreshAccessTokenViaCookie()` → retries once
+- On second 401: throws error
+
+**`refreshAccessTokenViaCookie()`** (internal singleton promise):
+```typescript
+// Prevents parallel refresh races via promise deduplication:
+if (refreshPromise) return refreshPromise
+refreshPromise = fetch('/api/auth/refresh/', { method:'POST', credentials:'include' })
+  .finally(() => { refreshPromise = null })
+```
+
+**`storeTokens()`**: No-op stub — tokens live in HttpOnly cookies, not accessible to JS.
+
+---
+
+#### `src/lib/exportUtils.ts` — 299 lines
+
+**Imports**: `jspdf`, `html2canvas`, `xlsx`, `file-saver`
+
+| Function | Parameters | Description |
+|---|---|---|
+| `exportTimetableToPDF(elementId, slots, options)` | `elementId: string`, `slots: TimetableSlotDetailed[]`, `options: ExportOptions` | `html2canvas(document.getElementById(elementId))` → `new jsPDF('landscape', 'mm', 'a4')` → `.addImage()` → `.save(filename.pdf)` |
+| `exportTimetableToExcel(slots, options)` | `slots`, `options` | `xlsx.utils.book_new()` + "Timetable" worksheet (rows: day/time/subject/faculty/room/batch) + "Information" worksheet (metadata: dept, semester, year) → `xlsx.writeFile()` |
+| `exportTimetableToCSV(slots, options)` | `slots`, `options` | BOM `\uFEFF` prefix + comma-separated with quoted fields → `FileSaver.saveAs(new Blob([csv]), filename.csv)` |
+| `exportTimetableToICS(slots, options)` | `slots`, `options` | Builds `VCALENDAR` string with `VEVENT` blocks containing `RRULE:FREQ=WEEKLY;BYDAY={day}` → `FileSaver.saveAs(blob, filename.ics)` |
+
+---
+
+#### `src/lib/validations.ts` — 470 lines
+
+All schemas use Zod `z.object({…})`. Exported as schema + inferred type.
+
+| Schema | Type | Key Rules |
+|---|---|---|
+| `loginSchema` | `LoginFormData` | `username` required, `password` required |
+| `userSchema` | `UserFormData` | username 3–150 chars alphanum+`_`, email format, password ≥8 chars (upper+lower+digit), role enum, is_active boolean |
+| `simpleFacultySchema` | `SimpleFacultyInput` | faculty_id uppercase alphanumeric, designation enum (5 values), max_workload 1–40, phone exactly 10 digits |
+| `simpleStudentSchema` | `SimpleStudentInput` | student_id, year 1–5, semester 1–10 |
+| `departmentSchema` | `DepartmentFormData` | dept_id, dept_name, building_name optional |
+| `courseSchema` | `CourseFormData` | duration_years 1–6, level enum (UG/PG/PhD/Diploma) |
+| `subjectSchema` | `SubjectFormData` | credits 1–10, lecture_hours 0–12, lab_hours 0–12 |
+| `classroomSchema` | `ClassroomFormData` | capacity 1–500, room_type enum |
+| `labSchema` | `LabFormData` | capacity 1–300, equipment text |
+| `batchSchema` | `BatchFormData` | year 2020–2030, student_count 1–200 |
+| `timetableGenerationSchema` | — | department_ids `string[]` non-empty, working_days `string[]`, constraints object with max_daily_load etc. |
+
+---
+
+#### `src/lib/utils.ts` — 5 lines
+```typescript
+import { clsx, ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+export function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)) }
+```
+`cn()` merges Tailwind classes, resolving conflicts (e.g. `cn('px-4', 'px-2')` → `'px-2'`).
+
+---
+
+#### `src/lib/api/timetable.ts` — 38 lines
+Timetable-specific API calls supplementing `apiClient`:
+- `getTimetableVariants(jobId)` → GET `/timetable/variants/?job_id={jobId}`
+- `getTimetableEntries(variantId)` → GET `/timetable/variants/{id}/entries/`
+- `selectVariant(variantId)` → POST `/timetable/variants/{id}/select/`
+- `approveTimetable(workflowId, reviewData)` → POST `/timetable/workflows/{id}/review/`
+
+---
+
+#### `src/lib/api/timetable-variants.ts` — 108 lines
+
+| Function | Endpoint | Description |
+|---|---|---|
+| `fetchVariants(jobId)` | GET `/timetable/variants/?job_id={jobId}` | All variants for a job |
+| `fetchVariantEntries(variantId)` | GET `/timetable/variants/{id}/entries/` | All timetable entry slots |
+| `selectVariant(variantId)` | POST `/timetable/variants/{id}/select/` | Mark as selected variant |
+| `compareVariants(id1, id2)` | GET `/timetable/variants/compare/?v1={id1}&v2={id2}` | Returns `VariantComparisonData` |
+| `fetchWorkflows(page, status?)` | GET `/timetable/workflows/` | Paginated workflow list |
+| `approveWorkflow(id, data)` | POST `/timetable/workflows/{id}/review/` | `data: { action: 'approve'\|'reject', reason?: string }` |
+
+---
+
+## 9. Types — `src/types/`
+
+#### `src/types/index.ts` — 13 lines
+
+```typescript
+export interface User {
   id: number
   username: string
   email: string
-  role: 'admin' | 'faculty' | 'student'
-  first_name?, last_name?: string
-  organization?: string       // organization_id (not name)
-  department?: string         // department_id (not name)
-  organization_name?: string
-  department_name?: string
+  role: 'admin' | 'org_admin' | 'super_admin' | 'faculty' | 'student'
+  first_name?: string
+  last_name?: string
+  organization?: string        // organization UUID/ID
+  department?: string          // department UUID/ID
+  organization_name?: string   // display name
+  department_name?: string     // display name
 }
 ```
 
-### 14.2 `types/timetable.ts` — Timetable Models
-
-**`GenerationJob`**
-```ts
-{ id: string(UUID), status: 'pending'|'running'|'completed'|'failed',
-  progress: number(0-100), error_message, timetable_data }
-```
-
-**`TimetableWorkflow`**
-```ts
-{ id, job_id, organization_id, department_id, semester, academic_year,
-  status: 'pending_review'|'approved'|'rejected'|'draft',
-  created_by, approved_by, rejection_reason, variant, timetable_entries[], reviews[] }
-```
-
-**`TimetableVariant`**
-```ts
-{ id, job_id, variant_number, score, conflict_count,
-  room_utilization, faculty_workload_balance,
-  timetable_entries[], is_selected, metadata }
-```
-
-**`TimetableEntry`**
-```ts
-{ day, start_time, end_time, subject_id, subject_code, subject_name,
-  faculty_id, faculty_name, batch_id, batch_name,
-  classroom_id, classroom_number, is_lab, is_elective }
-```
-
-**`TimetableReview`**
-```ts
-{ review_type: 'approve'|'request_changes'|'reject', comments }
-```
-
-### 14.3 Zod Validation Schemas (`lib/validations.ts`)
-
-| Schema | Key Rules |
-|--------|-----------|
-| `loginSchema` | username required, password required |
-| `userSchema` | username 3–150 chars `[a-zA-Z0-9_]`, strong password regex, role enum |
-| `facultySchema` | faculty_id `^[A-Z0-9]+$`, email, phone 10 digits, workload 1–40 |
-| `simpleFacultySchema` | Same + `status: 'active'|'inactive'|'on_leave'` |
-| `studentSchema` | student_id `^[A-Z0-9]+$`, year, semester |
-| `simpleStudentSchema` | Used in modal |
-| `roomSchema` | capacity, room_type enum |
-| `courseSchema` | course_code, credits 1–6, type enum |
-| `departmentSchema` | dept_code, school required |
-
 ---
 
-## 15. Utility Functions
+#### `src/types/timetable.ts` — 382 lines
 
-### 15.1 `lib/utils.ts`
-```ts
-// Merges Tailwind classes safely (no conflicting utilities)
-cn(...inputs: ClassValue[]) → string
-// Uses clsx for conditional classes + tailwind-merge for deduplication
+**Generation / Job**:
+```typescript
+GenerationJob        { id, status, progress, current_stage, message, eta_seconds, timetable_data, error }
+GenerateTimetableRequest  { name, department_ids[], course_ids[], start_date, end_date, working_days[], constraints, fixed_slots? }
+GenerateTimetableResponse { job_id, workflow_id, estimated_time_seconds, websocket_url }
 ```
 
-### 15.2 `lib/exportUtils.ts`
-
-**`exportTimetableToPDF(elementId, slots, options)`**
-- Uses `html2canvas` to capture the DOM element at 2× scale
-- Generates A4 landscape PDF via `jsPDF`
-- Adds title, department, semester, academic year header
-- Multi-page support with page numbers + generation date footer
-
-**`exportTimetableToExcel(slots, options)`**
-- Creates XLSX workbook via `xlsx` library
-- Header row: Day, Time Slot, Subject, Faculty, Classroom, Batch
-- Bold + gray fill on header cells
-- Downloads via `file-saver`
-
-**`exportTimetableToCSV(slots, options)`**
-- Plain CSV with same columns
-- Direct `Blob` download
-
-**`exportTimetableToICS(slots, options)`**
-- iCalendar format for calendar app import
-- Maps timetable slots to recurring weekly events
-
----
-
-## 16. Responsive Design Patterns
-
-### Breakpoints (Tailwind defaults)
-| Prefix | Min Width | Device |
-|--------|-----------|--------|
-| (none) | 0px | Mobile first |
-| `sm:` | 640px | Tablet |
-| `md:` | 768px | Laptop |
-| `lg:` | 1024px | Desktop |
-| `xl:` | 1280px | Wide |
-
-### Dual View Pattern (Mobile Card + Desktop Table)
-
-Extremely consistent across all CRUD pages (Faculty, Students, Logs, Approvals):
-
-```html
-<!-- Mobile: visible on xs/sm -->
-<div class="block sm:hidden space-y-3">
-  {items.map(item => <div class="card">...</div>)}
-</div>
-
-<!-- Desktop: visible on sm+ -->
-<div class="hidden sm:block overflow-x-auto">
-  <table class="table">...</table>
-</div>
+**Workflow / Variant**:
+```typescript
+TimetableWorkflow    { id, name, status, created_by, created_at, variants[], ...review metadata }
+TimetableVariant     { id, variant_number, overall_score, conflict_count, room_utilization, faculty_workload_balance, is_selected, entries[] }
 ```
 
-### Grid Patterns
-```
-Stats: grid-cols-1 sm:grid-cols-2 lg:grid-cols-4
-Faculty availability: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
-Form two-col: grid-cols-1 lg:grid-cols-2
-```
-
-### Sidebar Responsive
-```
-Mobile (<md): fixed drawer, translates off-screen, overlay on open
-Desktop (≥md): persistent sidebar (w-56), icon-only when collapsed (w-16)
-Content area: md:ml-56 when expanded, md:ml-16 when collapsed
+**Timetable Entries**:
+```typescript
+TimetableEntry       { day: string, start_time, end_time, subject_name, faculty_name, batch_name, classroom_name, is_lab, is_elective }
+BackendTimetableEntry { day: 0–5 (Mon–Sat), time_slot: "09:00-10:00", subject_id, faculty_id, classroom_id, batch_id }
 ```
 
-### Padding Patterns
+**Reviews & Approval**:
+```typescript
+TimetableReview      { id, reviewer_name, review_type: 'approve'|'request_changes'|'reject', comments, created_at }
+ApprovalRequest      { action: 'approve'|'reject', reason?: string }
+WorkflowListItem     { id, name, department_name, semester, academic_year, status, submitted_by, submitted_at, conflict_count }
 ```
-Page padding: p-4 lg:p-6
-Section spacing: space-y-4 sm:space-y-6
-Card padding: p-6 (inside .card)
+
+**Infrastructure**:
+```typescript
+FixedSlot    { day, time_slot, subject_id, faculty_id, classroom_id, batch_id }
+Shift        { name, start_time, end_time, working_days: string[] }
+```
+
+**UI Types**:
+```typescript
+TimetableListItem      { id, name, year, batch, department_name, semester, status, score, conflicts, created_at }
+VariantScoreCard       { overall_score, faculty_load_score, room_utilization_score, student_gap_score, labels }
+TimetableSlotDetailed  { ...TimetableEntry, subject_code, credits, faculty_designation, room_capacity, enrolled_count, conflicts: ConflictItem[] }
+```
+
+**Conflict Detection**:
+```typescript
+ConflictItem         { type: string, severity: 'critical'|'high'|'medium'|'low', day, time_slot, message, suggestion }
+ConflictDetectionResult { conflicts: ConflictItem[], critical_count, high_count, total_count, acknowledged_indices: number[] }
+ComparisonResult     { shared_slots[], changed_slots[], added_slots[], removed_slots[], metrics }
+VariantComparisonData { variants: TimetableVariant[], comparison_metrics: { best_score, score_range, avg_conflicts } }
+```
+
+**Legacy (backwards compat)**:
+```typescript
+Timetable     { id, name, status, department, semester, year, created_at, updated_at }
+TimetableSlot { id, day, period, subject, faculty, room }
 ```
 
 ---
 
-## 17. Dark Mode Implementation
-
-### Strategy
-`next-themes` library with `darkMode: 'class'` in Tailwind. The `dark` class is applied to `<html>`.
-
-**Provider:** `<ThemeProvider>` inside `RootLayout` in `app/layout.tsx`.
-
-### Color Pairs (every element has both)
-```
-bg-white dark:bg-[#1E1E1E]
-bg-[#F5F5F5] dark:bg-[#2A2A2A]
-text-[#2C2C2C] dark:text-[#FFFFFF]
-text-[#606060] dark:text-[#AAAAAA]
-border-[#E0E0E0] dark:border-[#2A2A2A]
-```
-
-### `suppressHydrationWarning`
-Applied on `<html>` in `RootLayout` to prevent hydration mismatch when server renders before theme is known.
-
-### Dark Mode for Spinners
-`GoogleSpinner` always uses `#4285F4` (works on both light and dark backgrounds). For spinners inside colored buttons: `color="white"` with 30% track opacity.
-
----
-
-## 18. UI/UX Patterns & Conventions
-
-### Toast Notifications (`components/Toast.tsx`)
-
-**Pattern:** Provider → Context → `useToast()` hook
-
-**Available methods:**
-```ts
-showToast(type: 'success'|'error'|'warning'|'info', message, duration?)
-showSuccessToast(message, duration?)   // default 5000ms
-showErrorToast(message, duration?)
-showWarningToast(message, duration?)
-showInfoToast(message, duration?)
-removeToast(id)
-```
-
-**Visual:** Fixed top-right stack (`top-4 right-4 z-50`). Each toast:
-- Colored background: `bg-green-50 border-green-200` / `bg-red-50` etc.
-- Icon from `lucide-react`: CheckCircle, AlertCircle, AlertTriangle, Info
-- Close button (X icon)
-- Auto-dismiss after `duration` ms
-
-### Loading States Pattern
-
-Three distinct loading states used across the app:
-
-1. **Full-page first load:** `GoogleSpinner` centered, nothing else shown
-2. **Table pagination/search:** `isTableLoading` — table fades or shows overlay, header stays visible
-3. **Button loading:** Replace button text with `GoogleSpinner size={16} color="white"`
-4. **Skeleton screens:** `TimetableCardSkeleton`, `TableSkeleton` for structural loading
-
-### Error States Pattern
-
-Three error presentations:
-
-1. **Inline error in table area:** Red text + retry button
-2. **Toast:** Non-blocking error toasts via `showErrorToast()`
-3. **Full-page ErrorBoundary:** Catches React render errors, shows reset + home buttons
-
-### Stale-While-Revalidate (SWR-like) Pattern
-
-Used in: Admin Dashboard, Timetables List, Faculty Dashboard, Student Dashboard, Student Timetable.
-
-```ts
-// On component init
-useState(() => {
-  const raw = sessionStorage.getItem(CACHE_KEY)
-  if (raw) {
-    const { data, ts } = JSON.parse(raw)
-    if (Date.now() - ts < TTL) return data  // serve stale immediately
-  }
-  return defaultValue
-})
-
-// After fetch completes
-sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }))
-```
-
-### Form Validation Pattern
-
-All forms use `react-hook-form` + `zodResolver`:
-```tsx
-const { register, handleSubmit, formState: { errors } } = useForm<Schema>({
-  resolver: zodResolver(schema)
-})
-```
-
-Error display: Red border on input (`input-error` class) + red icon + error message below via `FormField`.
-
-### Pagination Component (`components/Pagination.tsx`)
-
-**Features:**
-- Smart page number windowing (shows 7 pages max with `...` ellipsis)
-- Keyboard navigation: `ArrowLeft`, `ArrowRight`, `Home`, `End`
-- Items per page selector (if `showItemsPerPage=true`)
-- "Showing X to Y of Z results" count
-
-**Props:**
-```ts
-{ currentPage, totalPages, totalCount, itemsPerPage,
-  onPageChange, onItemsPerPageChange?, showItemsPerPage?, className? }
-```
-
-### DataTable Component (`components/shared/DataTable.tsx`)
-
-Reusable client-side table with:
-- Client-side search (filters all columns)
-- Client-side sort (click column header, toggle asc/desc)
-- Client-side pagination
-- Sort indicator arrows (↑/↓)
-
-**Props:**
-```ts
-{ data: any[], columns: Column[], searchable?, pagination?, pageSize? }
-```
-Note: For server-paginated data (Faculty, Students), each page uses its own inline table, not this component.
-
-### TimetableGrid Component (`components/shared/TimetableGrid.tsx`)
-
-**Props:**
-```ts
-{
-  schedule: TimeSlot[]
-  className?: string
-  isAdminView?: boolean     // enables click on conflicted slots
-  onSlotClick?: (slot) => void
-}
-```
-
-**Standard time slots:** `['9:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']`
-
-**Standard days:** `['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']`
-
-**Mobile view:** One card per day, each card lists all slots for that day.
-**Desktop view:** Classic week grid table — days as columns, time slots as rows.
-
-**Conflict visualization:**
-- Normal: `bg-blue-100 border-blue-200` dark: `bg-blue-900/30`
-- Conflict: `bg-red-100 border-red-200` dark: `bg-red-900/30`
-- Conflict badge: Red dot at `-top-1 -right-1` on desktop cells
-
-### ExportButton Component (`components/shared/ExportButton.tsx`)
-
-Dropdown button with four format options:
-
-| Format | Library | Notes |
-|--------|---------|-------|
-| PDF | jsPDF + html2canvas | Requires `tableElementId` in DOM |
-| Excel | xlsx + file-saver | `.xlsx` format |
-| CSV | Blob | Plain text |
-| ICS | Blob | Calendar import |
-
-Shows `GoogleSpinner` during export. Lazy-loaded in dashboards to avoid ~800KB bundle impact on initial paint.
-
-### UUID Job ID Badge
-
-In `DashboardLayout`, when the route contains a UUID segment, a clickable badge renders showing `#XXXXXXXX` (first 8 chars). On click: copies full UUID to clipboard, shows "Copied ✓" feedback for 2 seconds. On hover: tooltip shows full UUID with label "Job ID".
-
-### Sign-Out Confirmation Dialog
-
-In `DashboardLayout`: state `showSignOutDialog` blurs the main layout wrapper and renders a confirmation modal with Cancel + Sign Out buttons. Calls `useAuth().logout()` then `router.push('/login')`.
-
----
-
-## 19. Known UX Gaps & Enhancement Opportunities
-
-### Critical Gaps (Not Yet Implemented)
-
-| Feature | Current State | Recommendation |
-|---------|--------------|----------------|
-| **Approvals page** | All static/demo data | Wire to real `submitReview()` API |
-| **Logs page** | Static demo data | Wire to real audit log API with live filtering |
-| **Faculty Preferences** | UI only, no save | Connect to `POST /api/faculty/preferences/` |
-| **Notifications** | Hardcoded "New timetable generated" | Real notification feed |
-| **Theme toggle** | `ThemeProvider` wrapped but no toggle button | Add dark/light toggle in header settings dropdown |
-| **Admins page** | Page exists, content unclear | Implement admin CRUD similar to faculty page |
-| **Faculty availability toggle** | `console.log` only | Save to backend |
-
-### UX Improvements Available
-
-1. **Optimistic UI:** Faculty/Student CRUD currently refreshes full list after save. Could add optimistic update then reconcile.
-
-2. **Debounce department filter:** `selectedDepartment` filter state exists in Faculty/Students but isn't yet passed to the API call.
-
-3. **Toast positioning:** Currently `top-4 right-4` — could use a toast queue with slide-in animation (`.animate-slide-in` referenced in `ToastItem` but the keyframe isn't defined in globals.css).
-
-4. **Timetable comparison:** `/admin/timetables/compare/` route exists but is a stub.
-
-5. **Progress page:** `/admin/timetables/status/[jobId]` uses `useProgress` SSE hook — the most complex page. Progress bar should use `.progress-bar` UI component.
-
-6. **Empty states:** Most pages show plain "No data available" text — opportunity for illustrated empty states with call-to-action buttons.
-
-7. **Form field `SelectField`:** The full `SelectField` and `TextAreaField` are implemented in `FormFields.tsx` but the login page only uses `FormField`. Consider extending modal forms.
-
-8. **`InContentNav`** (`components/ui/InContentNav.tsx`): Used in academic layout for sub-navigation tabs. Styling could be enhanced with bottom-border active indicator.
-
-9. **Mobile: Pagination controls** are fully working with keyboard support — ensure they are accessible with ARIA labels on all page number buttons.
-
-10. **Loading Skeletons vs Spinner:** Skeletons are defined for timetables — ensure Faculty and Students pages also use `TableSkeleton` on initial load rather than full-page spinner.
-
----
-
-## Appendix A: Environment Variables
-
-| Variable | Default | Used By |
-|----------|---------|---------|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:8000/api` | `api.ts`, `useProgress`, dashboards |
-| `NEXT_PUBLIC_DJANGO_API_URL` | `http://localhost:8000/api` | `timetable.ts`, `optimized-client.ts` |
-| `NEXT_PUBLIC_FASTAPI_URL` | `http://localhost:8001` | `timetable.ts` |
-| `NEXT_PUBLIC_FASTAPI_WS_URL` | `ws://localhost:8001` | `timetable.ts` |
-
----
-
-## Appendix B: Alias Mapping (`tsconfig.json`)
-
-All imports use the `@/` alias pointing to `src/`:
-```
-@/components/* → src/components/*
-@/context/*    → src/context/*
-@/hooks/*      → src/hooks/*
-@/lib/*        → src/lib/*
-@/types/*      → src/types/*
-@/app/*        → src/app/*
+#### `src/types/css.d.ts` — 12 lines
+CSS module type declarations:
+```typescript
+declare module '*.module.css' { const styles: Record<string, string>; export default styles }
+declare module '*.module.scss' { ... }
 ```
 
 ---
 
-## Appendix C: Key CSS Classes Quick Reference
+## 10. Rendering & Data-Flow Diagram
 
 ```
-Layout:        min-h-screen flex items-center justify-center
-Spacing:       space-y-4 sm:space-y-6  |  p-4 lg:p-6  |  gap-4 sm:gap-6
-Grid:          grid-cols-1 sm:grid-cols-2 lg:grid-cols-4
-Card:          .card  .card-flat  .card-header  .card-title  .card-description
-Buttons:       .btn-primary  .btn-secondary  .btn-success  .btn-danger  .btn-ghost
-Inputs:        .input-primary  .input-error  .input-field
-Badges:        .badge  .badge-success  .badge-warning  .badge-danger  .badge-info
-Navigation:    .nav-link  .nav-link-active
-Header:        .header-circle-btn  .header-circle-notification  .notification-badge
-Table:         .table  .table-header  .table-header-cell  .table-row  .table-cell
-Forms:         .form-group  .form-label
-Spinner:       .gsp-rotate  .gsp-arc  (applied by GoogleSpinner component)
-Dark pairs:    Always dark: prefix variants on all color/bg/border classes
+Browser Request
+      │
+      ▼
+Next.js App Router (SSR → hydration)
+      │
+      ├── / and /blog /pricing /product /company /contact /legal/* 
+      │     └── (marketing)/layout.tsx → MarketingNav + {page} + MarketingFooter
+      │
+      ├── /login
+      │     └── (auth)/login/page.tsx  [Client]
+      │           └── useAuth().login()
+      │                 └── apiClient.login() → POST /auth/login/
+      │                       └── Django sets HttpOnly JWT cookies
+      │                             └── router.push(ROLE_DASHBOARD[role])
+      │
+      ├── /admin/*  ──────────────────────────── admin/layout.tsx [Client]
+      │     │             isLoading → AppShellSkeleton
+      │     │             wrong role → /unauthorized
+      │     │             correct → AppShell (role=admin|org_admin|super_admin)
+      │     │
+      │     ├── /admin/dashboard     → fetches /faculty/ /students/ /timetables/
+      │     │                          renders recharts graphs + stat tiles
+      │     ├── /admin/admins        → DataTable ↔ UserDetailPanel swap
+      │     ├── /admin/faculty       → DataTable ↔ FacultyDetailPanel swap
+      │     ├── /admin/students      → DataTable ↔ StudentDetailPanel swap
+      │     ├── /admin/academic/*    → each page: DataTable + modal CRUD form
+      │     ├── /admin/timetables    → list/grid → VariantCard/VariantGrid
+      │     │   ├── /new             → multi-step wizard → POST /timetable/generate/
+      │     │   │                      → job_id → SSE useProgress → smooth bar
+      │     │   ├── /status/:jobId   → SSE progress display + stage name
+      │     │   └── /:id/review      → CompareGrid + approve/reject
+      │     ├── /admin/approvals     → WorkflowListItem table + approve/reject
+      │     └── /admin/logs          → static mock audit log table
+      │
+      ├── /faculty/* ─────────────────────────── faculty/layout.tsx [Client]
+      │     │             role check: 'faculty' only
+      │     ├── /faculty/dashboard   → today's schedule + workload + notifications
+      │     ├── /faculty/preferences → availability matrix form
+      │     └── /faculty/schedule    → TimetableGrid (week view) + export
+      │
+      └── /student/* ─────────────────────────── student/layout.tsx [Client]
+            │             role check: 'student' only
+            ├── /student/dashboard   → attendance widgets + GPA chart + today's classes
+            └── /student/timetable   → TimetableGrid (read-only) + export
+
+═══════════════ State Flow ═══════════════════════════════════════════════════
+
+Component
+  └── useAuth()  [AuthContext]        ← user, isLoading
+  └── apiClient.METHOD()             [lib/api.ts]
+       └── fetch(url, credentials:'include')
+            └── Django REST API :8000/api/
+             ┌── 200 → parse JSON → update state
+             └── 401 → apiClient.refreshToken() → POST /auth/refresh/
+                    ├── Success → retry original request
+                    └── Error   → window.location = '/login'
+
+═══════════════ Real-time Progress Flow ══════════════════════════════════════
+
+POST /timetable/generate/ → { job_id }
+  └── useProgress(jobId)
+       └── EventSource(GET /timetable/jobs/{jobId}/progress/, { withCredentials:true })
+            ├── 'progress' event → { progress, stage, eta, message }
+            │    └── useSmoothProgress(progress) → requestAnimationFrame physics
+            │    └── useSmoothedETA(eta)          → exponential smoothing display
+            └── 'done' event → onComplete(result) → router.push(nextStep)
 ```
+
+---
+
+## 11. Authentication & Route-Guard Architecture
+
+```
+┌─── src/components/Providers.tsx ────────────────────────────────────────┐
+│                                                                          │
+│  ThemeProvider (next-themes)                                             │
+│    NavigationProgress (always mounted, not affected by auth errors)      │
+│    ErrorBoundary                                                         │
+│      ToastProvider                                                       │
+│        AuthProvider (src/context/AuthContext.tsx)                        │
+│          {children}                                                      │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌─── AuthContext Init Sequence ────────────────────────────────────────────┐
+│                                                                          │
+│  1. useState initializer runs SYNCHRONOUSLY:                             │
+│     → reads localStorage('user')                                         │
+│     → if present: user = JSON.parse(stored)  (no blank flash!)          │
+│     → if absent:  user = null                                            │
+│                                                                          │
+│  2. useEffect runs ONCE (React 18 StrictMode safe via ref guard):        │
+│     → apiClient.getCurrentUser({ noRedirectOn401: true })                │
+│     → On 200: setUser(serverUser) + update localStorage                  │
+│     → On 401: setUser(null) + clear localStorage                         │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌─── Route Guard (each layout file) ───────────────────────────────────────┐
+│                                                                          │
+│  const { user, isLoading } = useAuth()                                   │
+│                                                                          │
+│  if (isLoading)              → <AppShellSkeleton />                      │
+│  if (!user)                  → redirect('/login')                        │
+│  if (role not allowed)       → redirect('/unauthorized')                 │
+│  else                        → <AppShell>{children}</AppShell>           │
+│                                                                          │
+│  Allowed roles:                                                          │
+│    admin/layout.tsx   → admin | org_admin | super_admin                  │
+│    faculty/layout.tsx → faculty                                          │
+│    student/layout.tsx → student                                          │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌─── Token Architecture ───────────────────────────────────────────────────┐
+│                                                                          │
+│  Access Token  → HttpOnly cookie (not accessible to JS)                  │
+│  Refresh Token → HttpOnly cookie (not accessible to JS)                  │
+│                                                                          │
+│  localStorage stores ONLY:                                               │
+│    'user' → { id, username, email, role, first_name, ... }               │
+│    (no tokens, no sensitive data)                                        │
+│                                                                          │
+│  On 401 from any API call:                                               │
+│    apiClient.refreshToken() → POST /auth/refresh/                        │
+│    Backend: validates refresh cookie → rotates access token cookie       │
+│    If refresh fails → window.location.href = '/login'                    │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 12. CSS Architecture
+
+`src/app/globals.css` — 1 445 lines — is the single CSS source of truth for the entire app.
+
+### Structure
+
+| Section | Approx Lines | Description |
+|---|---|---|
+| Tailwind directives | 1–5 | `@tailwind base / components / utilities` |
+| CSS Custom Properties — Light | 10–145 | All design tokens for light mode |
+| CSS Custom Properties — Dark | 146–305 | `[data-theme="dark"]` overrides |
+| Button components | 305–380 | `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-danger` |
+| Form components | 380–450 | `.input-primary`, `.label`, `.form-error` |
+| Badge components | 450–520 | `.badge`, `.badge-success`, `.badge-warning`, `.badge-error`, `.badge-info`, `.badge-purple` |
+| Table styles | 520–640 | `.table-row`, `.table-cell`, `.bulk-toolbar` + CSS var overrides |
+| Card & layout | 640–720 | `.card-hover`, `.section-card`, `.page-title` |
+| Avatar system | 720–760 | `.avatar-font` CSS font-family declaration |
+| Skeleton loader | 760–800 | `.loading-skeleton` + `@keyframes shimmer` |
+| Scrollbar | 800–840 | `.profile-scroll` (6px thumb, `max-height:280px`), `.scrollbar-hide` |
+| Keyframe animations | 840–1000 | `@keyframes progress-fill`, `progress-fill-breathe`, `profileLoad`, `progress-breathe`, `slide-in-right`, `slide-in-up`, `fade-in` |
+| Marketing variables | 1000–1100 | `--cadence-*` color tokens, `.cadence-gradient` |
+| Marketing components | 1100–1300 | `.mk-section`, `.mk-h2`, `.mk-h3`, `.mk-body`, `.mk-feature-card`, `.mk-cta-lift`, `.mk-nav` etc. |
+| Responsive helpers | 1300–1445 | Media queries for marketing site breakpoints |
+
+---
+
+### Key Design Tokens (Light Mode)
+
+| Token | Value | Usage |
+|---|---|---|
+| `--color-primary` | `#1a73e8` | Buttons, active nav, links, progress bar |
+| `--color-primary-hover` | `#1557b0` | Button hover |
+| `--color-bg` | `#f0f4f9` | App background (Google-style light blue-grey) |
+| `--color-bg-surface` | `#ffffff` | Cards, table background |
+| `--color-bg-surface-2` | `#f1f3f4` | Table headers, secondary panels |
+| `--color-text-primary` | `#202124` | Main body text |
+| `--color-text-secondary` | `#5f6368` | Labels, captions |
+| `--color-text-placeholder` | `#9aa0a6` | Input placeholders |
+| `--color-border` | `#dadce0` | Dividers, input borders |
+| `--color-danger` | `#d93025` | Error, delete actions |
+| `--color-success` | `#188038` | Success, approved status |
+| `--color-warning` | `#f9ab00` | Warning, pending status |
+| `--color-nav-active` | `#d3e3fd` | Active sidebar item background |
+| `--radius-sm` | `8px` | Input fields, small buttons |
+| `--radius-md` | `12px` | Modal sub-sections |
+| `--radius-lg` | `16px` | Cards |
+| `--radius-xl` | `20px` | Content cards (AppShell) |
+| `--radius-pill` | `9999px` | Badges, status chips |
+| `--row-height` | `52px` | DataTable comfortable row height |
+| `--row-header-height` | `44px` | DataTable header row height |
+| `--row-hover-bg` | `rgba(26,115,232,0.04)` | Row hover background |
+| `--row-selected-bg` | `rgba(26,115,232,0.08)` | Selected row background |
+| `--checkbox-color` | `#1a73e8` | DataTable checkbox accent |
+| `--col-header-color` | `#5f6368` | Table header text color |
+| `--col-header-size` | `11px` | Table header font size (uppercase label style) |
+
+### Key Animation Keyframes
+
+| Name | Description | Used by |
+|---|---|---|
+| `shimmer` | `translateX(-100% → 100%)` gradient sweep | `.loading-skeleton` for all skeleton loaders |
+| `progress-fill` | `scaleX(0 → 1)` with cubic-bezier | Login card progress bar |
+| `progress-fill-breathe` | `scaleX(0 → 0.8 → 0.9 → 0.8)` pulsing | Breathe mode for progress |
+| `profileLoad` | `left:-30% → left:100%` indeterminate sweep | ProfileDropdown loading bar (while user=null) |
+| `progress-breathe` | opacity + scale pulse | Progress bar "alive" indicator |
+| `slide-in-right` | `translateX(100% → 0) + opacity` | SlotDetailPanel (slide-in panel) |
+| `slide-in-up` | `translateY(20px → 0) + opacity` | Modal/card entrance |
+| `fade-in` | `opacity 0 → 1` | Generic fade |
+
+### CSS Component Classes
+
+| Class | Description |
+|---|---|
+| `.btn-primary` | Blue filled button — `bg-[--color-primary] text-white hover:bg-[--color-primary-hover]` |
+| `.btn-secondary` | Outlined — `border border-[--color-border] text-[--color-text-primary] hover:bg-[--color-bg-surface-2]` |
+| `.btn-ghost` | No border — `text-[--color-primary] hover:bg-[--color-nav-active]` |
+| `.btn-danger` | Red — `bg-[--color-danger] text-white` |
+| `.input-primary` | Form input — `border border-[--color-border] rounded-[--radius-sm] focus:ring-2 focus:ring-[--color-primary]` |
+| `.badge` | Base pill — `inline-flex rounded-full px-2 py-0.5 text-xs font-medium` |
+| `.badge-success` | Green badge |
+| `.badge-warning` | Yellow/amber badge |
+| `.badge-error` | Red badge |
+| `.badge-info` | Blue badge |
+| `.loading-skeleton` | Shimmer block — `bg-gradient-to-r from-surface-2 via-white to-surface-2 animate-[shimmer_1.5s_infinite]` |
+| `.profile-scroll` | ProfileDropdown scroll area — `max-height:280px; overflow-y:auto; scrollbar-width:thin` |
+| `.avatar-font` | `font-family: 'Google Sans', 'Product Sans', Roboto, sans-serif` |
+| `.scrollbar-hide` | `scrollbar-width:none; &::-webkit-scrollbar { display:none }` |
+| `.table-row` | DataTable row base — height `var(--row-height)`, hover `var(--row-hover-bg)` |
+| `.table-cell` | DataTable cell — padding, border-bottom, text size |

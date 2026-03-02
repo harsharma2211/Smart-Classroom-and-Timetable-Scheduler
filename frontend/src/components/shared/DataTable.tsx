@@ -769,7 +769,7 @@ export default function DataTable<T extends Record<string, unknown>>({
           </thead>
 
           {/* Body */}
-          <tbody>
+          <tbody style={{ borderSpacing: '0 8px', borderCollapse: 'separate' }}>
             {loading ? (
               <SkeletonRows cols={displayColumns.length} hasAvatar={!!avatarColumn} />
             ) : data.length === 0 ? (
@@ -784,15 +784,15 @@ export default function DataTable<T extends Record<string, unknown>>({
                     className={`group transition-colors duration-75${onRowClick ? ' cursor-pointer' : ' cursor-default'}${selected ? ' table-row-selected' : ''}`}
                     style={{
                       height: rowH,
-                      backgroundColor: selected ? 'var(--row-selected-bg)' : undefined,
+                      backgroundColor: selected ? 'var(--row-selected-bg)' : 'var(--color-bg-surface)',
                       outline: 'none',
                     }}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     onMouseEnter={e => { if (!selected) (e.currentTarget as HTMLTableRowElement).style.backgroundColor = 'var(--row-hover-bg)' }}
-                    onMouseLeave={e => { if (!selected) (e.currentTarget as HTMLTableRowElement).style.backgroundColor = '' }}
+                    onMouseLeave={e => { if (!selected) (e.currentTarget as HTMLTableRowElement).style.backgroundColor = 'var(--color-bg-surface)' }}
                   >
                     {selectable && (
-                      <td className="pl-3 pr-2 w-12" onClick={e => e.stopPropagation()}>
+                      <td className="pl-3 pr-2 w-12" onClick={e => e.stopPropagation()} style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}>
                         {avatarColumn ? (
                           /* Google Contacts avatar ↔ checkbox flip */
                           <div
@@ -851,7 +851,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                     ))}
                     {/* Row actions (edit / delete) — appear on hover */}
                     {(onEdit || onDelete) && (
-                      <td className="pr-2 text-right" style={{ width: '104px' }} onClick={e => e.stopPropagation()}>
+                      <td className="pr-2 text-right" style={{ width: '104px', borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }} onClick={e => e.stopPropagation()}>
                         <span className="inline-flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-75">
                           {onEdit && (
                             <button

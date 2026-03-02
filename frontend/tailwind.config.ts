@@ -121,6 +121,13 @@ const config: Config = {
       },
     },
   },
+  safelist: [
+    // Nav label active/inactive states — used dynamically in AppShell
+    'text-[#1f1f1f]',
+    'text-[#444746]',
+    'font-bold',
+    'font-normal',
+  ],
   plugins: [],
 }
 export default config

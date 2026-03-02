@@ -106,7 +106,14 @@ export default function FacultyManagePage() {
     await fetchFaculty()
   }
 
-  return (
+  return detailFaculty ? (
+    <FacultyDetailPanel
+      faculty={detailFaculty}
+      onClose={() => setDetailFaculty(null)}
+      onEdit={() => { setSelectedFaculty(detailFaculty); setDetailFaculty(null); setIsModalOpen(true) }}
+      onDelete={() => { handleBulkDelete([String(detailFaculty.id)]); setDetailFaculty(null) }}
+    />
+  ) : (
     <div className="space-y-4">
       <PageHeader
         title="Faculty"
@@ -138,14 +145,6 @@ export default function FacultyManagePage() {
         faculty={selectedFaculty}
         onSave={handleSaveFaculty}
       />
-      {detailFaculty && (
-        <FacultyDetailPanel
-          faculty={detailFaculty}
-          onClose={() => setDetailFaculty(null)}
-          onEdit={() => { setSelectedFaculty(detailFaculty); setDetailFaculty(null); setIsModalOpen(true) }}
-          onDelete={() => { handleBulkDelete([String(detailFaculty.id)]); setDetailFaculty(null) }}
-        />
-      )}
     </div>
   )
 }

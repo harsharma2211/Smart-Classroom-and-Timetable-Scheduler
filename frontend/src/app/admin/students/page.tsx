@@ -95,7 +95,14 @@ export default function StudentsPage() {
     await fetchStudents()
   }
 
-  return (
+  return detailStudent ? (
+    <StudentDetailPanel
+      student={detailStudent}
+      onClose={() => setDetailStudent(null)}
+      onEdit={() => { setSelectedStudent(detailStudent); setDetailStudent(null); setIsModalOpen(true) }}
+      onDelete={() => { handleBulkDelete([String(detailStudent.id)]); setDetailStudent(null) }}
+    />
+  ) : (
     <div className="space-y-4">
       <PageHeader
         title="Students"
@@ -124,14 +131,6 @@ export default function StudentsPage() {
         onSave={handleSaveStudent}
         student={selectedStudent}
       />
-      {detailStudent && (
-        <StudentDetailPanel
-          student={detailStudent}
-          onClose={() => setDetailStudent(null)}
-          onEdit={() => { setSelectedStudent(detailStudent); setDetailStudent(null); setIsModalOpen(true) }}
-          onDelete={() => { handleBulkDelete([String(detailStudent.id)]); setDetailStudent(null) }}
-        />
-      )}
     </div>
   )
 }

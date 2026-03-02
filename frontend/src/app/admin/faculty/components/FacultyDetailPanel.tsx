@@ -1,7 +1,7 @@
 'use client'
-// Google Contacts–style detail panel for Faculty rows.
+// Google Contacts–style detail page for Faculty rows.
 
-import { X, Mail, Phone, Star, Pencil, Trash2, MoreVertical, Users, BookOpen, Clock } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Star, Pencil, Trash2, MoreVertical, Users, BookOpen, Clock } from 'lucide-react'
 import Avatar from '@/components/shared/Avatar'
 
 interface Faculty {
@@ -65,33 +65,29 @@ export default function FacultyDetailPanel({ faculty, onClose, onEdit, onDelete 
   const fullName = [faculty.first_name, faculty.middle_name, faculty.last_name].filter(Boolean).join(' ')
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/[0.18]" onClick={onClose} />
-      <div className="fixed top-0 right-0 bottom-0 z-50 flex flex-col overflow-hidden w-[min(540px,100vw)] bg-[var(--color-bg-surface)] shadow-[-4px_0_24px_rgba(0,0,0,0.14)]">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-[var(--color-border)] min-h-[56px]">
-          <button onClick={onClose} className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="Close"><X size={20} /></button>
-          <div className="flex items-center gap-1">
-            <button className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="Favourite"><Star size={19} /></button>
-            <button onClick={onEdit} className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-[#188038] text-white">
-              <Pencil size={14} /> Edit
-            </button>
-            <button onClick={onDelete} className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-danger-subtle)] text-[var(--color-text-secondary)]" title="Delete"><Trash2 size={19} /></button>
-            <button className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="More actions"><MoreVertical size={19} /></button>
-          </div>
+    <div className="flex flex-col min-h-full w-full">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-2 py-3 shrink-0 border-b border-[var(--color-border)] min-h-[56px]">
+        <button onClick={onClose} className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="Back"><ArrowLeft size={20} /></button>
+        <div className="flex items-center gap-1">
+          <button className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="Favourite"><Star size={19} /></button>
+          <button onClick={onEdit} className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-[#188038] text-white">
+            <Pencil size={14} /> Edit
+          </button>
+          <button onClick={onDelete} className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-danger-subtle)] text-[var(--color-text-secondary)]" title="Delete"><Trash2 size={19} /></button>
+          <button className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="More actions"><MoreVertical size={19} /></button>
         </div>
+      </div>
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-
-          {/* Profile header */}
-          <div className="flex flex-col items-center gap-3 text-center">
-            <Avatar name={fullName} size="lg" className="!w-20 !h-20" />
-            <div>
-              <h2 className="text-[22px] font-normal text-[var(--color-text-primary)]">{fullName}</h2>
-              <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{faculty.faculty_code}</p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap justify-center">
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto px-8 py-8">
+        {/* Profile header */}
+        <div className="flex items-start gap-8 mb-8">
+          <Avatar name={fullName} size={162} className="shrink-0" />
+          <div className="pt-1">
+            <h2 className="text-[28px] font-normal text-[var(--color-text-primary)] leading-tight">{fullName}</h2>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{faculty.faculty_code}</p>
+            <div className="flex items-center gap-2 flex-wrap mt-2">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#e6f4ea] text-[#137333]">{faculty.designation}</span>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${faculty.status === 'active' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]'}`}>
                 {faculty.status}
@@ -101,31 +97,33 @@ export default function FacultyDetailPanel({ faculty, onClose, onEdit, onDelete 
               )}
             </div>
           </div>
+        </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center justify-center gap-4">
-            {faculty.email && (
-              <a href={`mailto:${faculty.email}`} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors hover:bg-[var(--color-bg-surface-2)]">
-                <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]"><Mail size={18} /></span>
-                <span className="text-xs text-[var(--color-text-secondary)]">Email</span>
-              </a>
-            )}
-            {faculty.phone && (
-              <a href={`tel:${faculty.phone}`} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors hover:bg-[var(--color-bg-surface-2)]">
-                <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]"><Phone size={18} /></span>
-                <span className="text-xs text-[var(--color-text-secondary)]">Call</span>
-              </a>
-            )}
-          </div>
+        {/* Action buttons */}
+        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-[var(--color-border)]">
+          {faculty.email && (
+            <a href={`mailto:${faculty.email}`} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors hover:bg-[var(--color-bg-surface-2)]">
+              <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]"><Mail size={18} /></span>
+              <span className="text-xs text-[var(--color-text-secondary)]">Email</span>
+            </a>
+          )}
+          {faculty.phone && (
+            <a href={`tel:${faculty.phone}`} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors hover:bg-[var(--color-bg-surface-2)]">
+              <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]"><Phone size={18} /></span>
+              <span className="text-xs text-[var(--color-text-secondary)]">Call</span>
+            </a>
+          )}
+        </div>
 
-          {/* Role pills */}
-          <div className="flex flex-wrap gap-2">
-            {faculty.is_hod && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#fef7e0] text-[#b06000] border border-[#f3d47e]">HOD</span>}
-            {faculty.is_dean && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#fef7e0] text-[#b06000] border border-[#f3d47e]">Dean</span>}
-            {faculty.can_approve_timetable && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#e8f0fe] text-[#1967d2] border border-[#c5d9f7]">Can Approve Timetable</span>}
-          </div>
+        {/* Role pills */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {faculty.is_hod && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#fef7e0] text-[#b06000] border border-[#f3d47e]">HOD</span>}
+          {faculty.is_dean && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#fef7e0] text-[#b06000] border border-[#f3d47e]">Dean</span>}
+          {faculty.can_approve_timetable && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#e8f0fe] text-[#1967d2] border border-[#c5d9f7]">Can Approve Timetable</span>}
+        </div>
 
-          {/* Personal & Academic card */}
+        {/* Two-column cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-xl p-4 bg-[var(--color-bg-surface-2)] border border-[var(--color-border)]">
             <h3 className="flex items-center gap-2 font-medium mb-3 text-[13px] text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">
               <Users size={13} /> Personal Details
@@ -138,7 +136,6 @@ export default function FacultyDetailPanel({ faculty, onClose, onEdit, onDelete 
             {faculty.date_of_joining && <InfoRow label="Joined" value={new Date(faculty.date_of_joining).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} />}
           </div>
 
-          {/* Workload stats */}
           <div className="rounded-xl p-4 bg-[var(--color-bg-surface-2)] border border-[var(--color-border)]">
             <h3 className="flex items-center gap-2 font-medium mb-3 text-[13px] text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">
               <BookOpen size={13} /> Workload Limits
@@ -151,7 +148,6 @@ export default function FacultyDetailPanel({ faculty, onClose, onEdit, onDelete 
             </div>
           </div>
 
-          {/* History */}
           {(faculty.last_login || faculty.created_at) && (
             <div className="rounded-xl p-4 bg-[var(--color-bg-surface-2)] border border-[var(--color-border)]">
               <h3 className="font-medium mb-3 text-[13px] text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">History</h3>
@@ -161,6 +157,6 @@ export default function FacultyDetailPanel({ faculty, onClose, onEdit, onDelete 
           )}
         </div>
       </div>
-    </>
+    </div>
   )
 }

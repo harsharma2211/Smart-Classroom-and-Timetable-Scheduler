@@ -1,7 +1,7 @@
 'use client'
-// Google Contacts–style detail panel for Student rows.
+// Google Contacts–style detail page for Student rows.
 
-import { X, Mail, Phone, Star, Pencil, Trash2, MoreVertical, GraduationCap, BookOpen, User } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Star, Pencil, Trash2, MoreVertical, GraduationCap, BookOpen, User } from 'lucide-react'
 import Avatar from '@/components/shared/Avatar'
 
 interface Student {
@@ -67,33 +67,29 @@ export default function StudentDetailPanel({ student, onClose, onEdit, onDelete 
     : ''
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/[0.18]" onClick={onClose} />
-      <div className="fixed top-0 right-0 bottom-0 z-50 flex flex-col overflow-hidden w-[min(540px,100vw)] bg-[var(--color-bg-surface)] shadow-[-4px_0_24px_rgba(0,0,0,0.14)]">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-[var(--color-border)] min-h-[56px]">
-          <button onClick={onClose} className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="Close"><X size={20} /></button>
-          <div className="flex items-center gap-1">
-            <button className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="Favourite"><Star size={19} /></button>
-            <button onClick={onEdit} className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium bg-[var(--color-primary)] text-white">
-              <Pencil size={14} /> Edit
-            </button>
-            <button onClick={onDelete} className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-danger-subtle)] text-[var(--color-text-secondary)]" title="Delete"><Trash2 size={19} /></button>
-            <button className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="More actions"><MoreVertical size={19} /></button>
-          </div>
+    <div className="flex flex-col min-h-full w-full">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-2 py-3 shrink-0 border-b border-[var(--color-border)] min-h-[56px]">
+        <button onClick={onClose} className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="Back"><ArrowLeft size={20} /></button>
+        <div className="flex items-center gap-1">
+          <button className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="Favourite"><Star size={19} /></button>
+          <button onClick={onEdit} className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium bg-[var(--color-primary)] text-white">
+            <Pencil size={14} /> Edit
+          </button>
+          <button onClick={onDelete} className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-danger-subtle)] text-[var(--color-text-secondary)]" title="Delete"><Trash2 size={19} /></button>
+          <button className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]" title="More actions"><MoreVertical size={19} /></button>
         </div>
+      </div>
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-
-          {/* Profile header */}
-          <div className="flex flex-col items-center gap-3 text-center">
-            <Avatar name={student.name} size="lg" className="!w-20 !h-20" />
-            <div>
-              <h2 className="text-[22px] font-normal text-[var(--color-text-primary)]">{student.name}</h2>
-              <p className="text-[13px] text-[var(--color-text-secondary)] font-mono mt-0.5">{student.student_id}</p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap justify-center">
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto px-8 py-8">
+        {/* Profile header */}
+        <div className="flex items-start gap-8 mb-8">
+          <Avatar name={student.name} size={162} className="shrink-0" />
+          <div className="pt-1">
+            <h2 className="text-[28px] font-normal text-[var(--color-text-primary)] leading-tight">{student.name}</h2>
+            <p className="text-[13px] text-[var(--color-text-secondary)] font-mono mt-0.5">{student.student_id}</p>
+            <div className="flex items-center gap-2 flex-wrap mt-2">
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#e8f0fe] text-[#1967d2]">
                 <GraduationCap size={11} /> Student
               </span>
@@ -104,31 +100,34 @@ export default function StudentDetailPanel({ student, onClose, onEdit, onDelete 
               )}
             </div>
           </div>
+        </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center justify-center gap-4">
-            {student.email && (
-              <a href={`mailto:${student.email}`} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors hover:bg-[var(--color-bg-surface-2)]">
-                <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]"><Mail size={18} /></span>
-                <span className="text-xs text-[var(--color-text-secondary)]">Email</span>
-              </a>
-            )}
-            {student.phone && (
-              <a href={`tel:${student.phone}`} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors hover:bg-[var(--color-bg-surface-2)]">
-                <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]"><Phone size={18} /></span>
-                <span className="text-xs text-[var(--color-text-secondary)]">Call</span>
-              </a>
-            )}
-          </div>
+        {/* Action buttons */}
+        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-[var(--color-border)]">
+          {student.email && (
+            <a href={`mailto:${student.email}`} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors hover:bg-[var(--color-bg-surface-2)]">
+              <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]"><Mail size={18} /></span>
+              <span className="text-xs text-[var(--color-text-secondary)]">Email</span>
+            </a>
+          )}
+          {student.phone && (
+            <a href={`tel:${student.phone}`} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors hover:bg-[var(--color-bg-surface-2)]">
+              <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]"><Phone size={18} /></span>
+              <span className="text-xs text-[var(--color-text-secondary)]">Call</span>
+            </a>
+          )}
+        </div>
 
-          {/* Tag pills */}
-          <div className="flex flex-wrap gap-2">
-            {yearLabel && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#e8f0fe] text-[#1967d2] border border-[#c5d9f7]">{yearLabel}</span>}
-            {semLabel && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#e6f4ea] text-[#137333] border border-[#b5d9c1]">{semLabel}</span>}
-            {student.enrollment_number && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">Enroll: {student.enrollment_number}</span>}
-          </div>
+        {/* Tag pills */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {yearLabel && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#e8f0fe] text-[#1967d2] border border-[#c5d9f7]">{yearLabel}</span>}
+          {semLabel && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#e6f4ea] text-[#137333] border border-[#b5d9c1]">{semLabel}</span>}
+          {student.enrollment_number && <span className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">Enroll: {student.enrollment_number}</span>}
+        </div>
 
-          {/* Academic Details */}
+        {/* Two-column cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
           <div className="rounded-xl p-4 bg-[var(--color-bg-surface-2)] border border-[var(--color-border)]">
             <h3 className="flex items-center gap-2 font-medium mb-3 text-[13px] text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">
               <BookOpen size={13} /> Academic Details
@@ -151,7 +150,6 @@ export default function StudentDetailPanel({ student, onClose, onEdit, onDelete 
             } />}
           </div>
 
-          {/* Personal Details */}
           {(student.email || student.phone || student.blood_group || student.city) && (
             <div className="rounded-xl p-4 bg-[var(--color-bg-surface-2)] border border-[var(--color-border)]">
               <h3 className="flex items-center gap-2 font-medium mb-3 text-[13px] text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">
@@ -164,10 +162,9 @@ export default function StudentDetailPanel({ student, onClose, onEdit, onDelete 
             </div>
           )}
 
-          {/* Hostel & Finance */}
           {(student.is_hosteller != null || student.fee_status) && (
             <div className="rounded-xl p-4 bg-[var(--color-bg-surface-2)] border border-[var(--color-border)]">
-              <h3 className="font-medium mb-3 text-[13px] text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">Hostel & Finance</h3>
+              <h3 className="font-medium mb-3 text-[13px] text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">Hostel &amp; Finance</h3>
               <InfoRow label="Hosteller" value={
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${student.is_hosteller ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]'}`}>
                   {student.is_hosteller ? 'Yes' : 'No'}
@@ -179,7 +176,6 @@ export default function StudentDetailPanel({ student, onClose, onEdit, onDelete 
             </div>
           )}
 
-          {/* History */}
           {(student.last_login || student.created_at) && (
             <div className="rounded-xl p-4 bg-[var(--color-bg-surface-2)] border border-[var(--color-border)]">
               <h3 className="font-medium mb-3 text-[13px] text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">History</h3>
@@ -190,6 +186,6 @@ export default function StudentDetailPanel({ student, onClose, onEdit, onDelete 
           )}
         </div>
       </div>
-    </>
+    </div>
   )
 }

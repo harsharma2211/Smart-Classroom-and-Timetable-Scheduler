@@ -99,7 +99,14 @@ export default function AdminUsersPage() {
     setTimeout(() => fetchUsers(), 500)
   }
 
-  return (
+  return detailUser ? (
+    <UserDetailPanel
+      user={detailUser}
+      onClose={() => setDetailUser(null)}
+      onEdit={() => { setEditingUser(detailUser); setDetailUser(null); setShowModal(true) }}
+      onDelete={() => { handleBulkDelete([String(detailUser.id)]); setDetailUser(null) }}
+    />
+  ) : (
     <div className="space-y-4">
       <PageHeader
         title="Admin Users"
@@ -131,14 +138,6 @@ export default function AdminUsersPage() {
         user={editingUser}
         onSave={handleSaveUser}
       />
-      {detailUser && (
-        <UserDetailPanel
-          user={detailUser}
-          onClose={() => setDetailUser(null)}
-          onEdit={() => { setEditingUser(detailUser); setDetailUser(null); setShowModal(true) }}
-          onDelete={() => { handleBulkDelete([String(detailUser.id)]); setDetailUser(null) }}
-        />
-      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@
  */
 
 import { X, User, MapPin, BookOpen, AlertCircle, CheckCircle, Users } from 'lucide-react'
+import Avatar from '@/components/shared/Avatar'
 import type { TimetableSlotDetailed } from '@/types/timetable'
 
 interface SlotDetailPanelProps {
@@ -37,14 +38,7 @@ function InfoRow({ icon, label, children }: { icon: React.ReactNode; label: stri
   )
 }
 
-function TeacherAvatar({ name }: { name: string }) {
-  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
-  return (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 bg-[#e8f0fe] text-[#1a73e8]">
-      {initials || <User size={14} />}
-    </div>
-  )
-}
+
 
 export function SlotDetailPanel({ slot, onClose }: SlotDetailPanelProps) {
   const isOpen = slot !== null
@@ -112,7 +106,7 @@ export function SlotDetailPanel({ slot, onClose }: SlotDetailPanelProps) {
           </InfoRow>
 
           {/* Faculty */}
-          <InfoRow icon={<TeacherAvatar name={slot.faculty_name} />} label="Faculty">
+          <InfoRow icon={<Avatar name={slot.faculty_name} size={32} />} label="Faculty">
             {slot.faculty_name || '\u2014'}
           </InfoRow>
 

@@ -72,7 +72,7 @@
   --color-border-focus:   #1A73E8;
 
   /* Text */
-  --color-text-primary:   #202124;
+  --color-text-primary:   #1f1f1f;
   --color-text-secondary: #5F6368;
   --color-text-muted:     #80868B;
   --color-text-inverse:   #FFFFFF;
@@ -149,17 +149,12 @@
   --row-border:          #f1f3f4;
 
   /* ── Column headers ── */
-  --col-header-color:    #5f6368;
-  --col-header-size:     13px;
+  --col-header-color:    #444746;
+  --col-header-size:     14px;
   --col-header-weight:   400;
 
   /* ── Page title ── */
   --text-page-title:     22px;
-
-  /* ── Avatar ── */
-  --avatar-size-sm:      32px;
-  --avatar-size-md:      36px;
-  --avatar-size-lg:      40px;
 
   /* ── Bulk action bar ── */
   --bulk-bar-bg:         #ffffff;
@@ -175,6 +170,15 @@
   --nav-badge-color:     #5f6368;
   --nav-color:           #444746;
   --checkbox-color:      #1a73e8;
+}
+
+/* ── Ellipsis truncation utility ── */
+.hhIRA {
+  display: block;
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dark {
@@ -1066,6 +1070,31 @@
     text-wrap: balance;
   }
 
+  /* Google Sans font family — used by Avatar component for proportional initials */
+  .avatar-font {
+    font-family: 'Google Sans', 'Product Sans', Roboto, arial, sans-serif;
+  }
+
+  /* ProfileDropdown scrollable cards area — 6px Google-style scrollbar */
+  .profile-scroll {
+    max-height: 280px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(95,99,104,0.35) transparent;
+  }
+  .profile-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .profile-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .profile-scroll::-webkit-scrollbar-thumb {
+    background: rgba(95,99,104,0.35);
+    border-radius: 3px;
+  }
+  .profile-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(95,99,104,0.55);
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: thin;
@@ -1186,6 +1215,14 @@
 @keyframes progress-fill-breathe {
   0%, 100% { opacity: 0.92; }
   50%       { opacity: 1; }
+}
+
+/* ProfileDropdown loading bar — Google-style indeterminate sweep */
+@keyframes profileLoad {
+  0%   { transform: scaleX(0);    transform-origin: left; }
+  40%  { transform: scaleX(0.6);  transform-origin: left; }
+  60%  { transform: scaleX(0.6);  transform-origin: right; }
+  100% { transform: scaleX(0);    transform-origin: right; }
 }
 
 /* =============================================================================
