@@ -66,10 +66,9 @@ export default function BuildingsPage() {
   }
 
   const handleBulkDelete = async (ids: string[]) => {
-    for (const id of ids) {
-      const res = await apiClient.deleteBuilding(id)
-      if (res.error) { showToast('error', res.error); break }
-    }
+    const results = await Promise.all(ids.map(id => apiClient.deleteBuilding(id)))
+    const firstError = results.find(r => r.error)
+    if (firstError) { showToast('error', firstError.error!); return }
     showToast('success', `${ids.length} building${ids.length > 1 ? 's' : ''} deleted`)
     await fetchBuildings()
   }

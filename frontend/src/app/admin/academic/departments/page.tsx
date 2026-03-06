@@ -69,10 +69,9 @@ export default function DepartmentsPage() {
   }
 
   const handleBulkDelete = async (ids: string[]) => {
-    for (const id of ids) {
-      const res = await apiClient.deleteDepartment(id)
-      if (res.error) { showToast('error', res.error); break }
-    }
+    const results = await Promise.all(ids.map(id => apiClient.deleteDepartment(id)))
+    const firstError = results.find(r => r.error)
+    if (firstError) { showToast('error', firstError.error!); return }
     showToast('success', `${ids.length} department${ids.length > 1 ? 's' : ''} deleted`)
     await fetchDepartments()
   }

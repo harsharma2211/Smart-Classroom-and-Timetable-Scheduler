@@ -66,10 +66,9 @@ export default function ProgramsPage() {
   }
 
   const handleBulkDelete = async (ids: string[]) => {
-    for (const id of ids) {
-      const res = await apiClient.deleteProgram(id)
-      if (res.error) { showToast('error', res.error); break }
-    }
+    const results = await Promise.all(ids.map(id => apiClient.deleteProgram(id)))
+    const firstError = results.find(r => r.error)
+    if (firstError) { showToast('error', firstError.error!); return }
     showToast('success', `${ids.length} program${ids.length > 1 ? 's' : ''} deleted`)
     await fetchPrograms()
   }

@@ -110,10 +110,9 @@ export default function ClassroomsPage() {
   }
 
   const handleBulkDelete = async (ids: string[]) => {
-    for (const id of ids) {
-      const res = await apiClient.deleteRoom(id)
-      if (res.error) { showToast('error', res.error); break }
-    }
+    const results = await Promise.all(ids.map(id => apiClient.deleteRoom(id)))
+    const firstError = results.find(r => r.error)
+    if (firstError) { showToast('error', firstError.error!); return }
     showToast('success', `${ids.length} room${ids.length > 1 ? 's' : ''} deleted`)
     await fetchRooms()
   }

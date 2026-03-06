@@ -175,7 +175,7 @@ function ApprovalCard({ item, actionLoading, onApprove, onReject }: CardProps) {
           onClick={onApprove}
           disabled={actionLoading}
           className="flex-1 rounded-full text-sm py-2 font-medium text-white transition-opacity duration-200 disabled:opacity-50"
-          style={{ background: '#1a73e8' }}
+          style={{ background: 'var(--color-primary)' }}
         >
           {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Approve'}
         </button>
@@ -427,7 +427,7 @@ export default function AdminApprovals() {
                           onClick={() => handleApprove(item)}
                           disabled={actionLoading.has(item.id)}
                           className="rounded-full px-5 py-1.5 text-xs font-medium text-white transition-opacity duration-200 disabled:opacity-50 flex items-center gap-1.5"
-                          style={{ background: '#1a73e8' }}
+                          style={{ background: 'var(--color-primary)' }}
                         >
                           {actionLoading.has(item.id)
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

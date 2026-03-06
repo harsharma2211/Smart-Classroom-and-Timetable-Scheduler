@@ -55,11 +55,12 @@ export default function AdminUsersPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [detailUser, setDetailUser] = useState<User | null>(null)
+  const itemsPerPage = 25
 
   const fetchUsers = useCallback(async (page = currentPage, search = searchTerm) => {
     setIsLoading(true)
     try {
-      const params = new URLSearchParams({ role: 'ADMIN', page: String(page), page_size: '100', ordering: 'username' })
+      const params = new URLSearchParams({ role: 'ADMIN', page: String(page), page_size: String(itemsPerPage), ordering: 'username' })
       if (search) params.set('search', search)
       const response = await apiClient.request<PaginatedResponse<User>>(`/users/?${params}`)
       if (response.error) showToast('error', response.error)
@@ -87,16 +88,15 @@ export default function AdminUsersPage() {
     showToast('success', editingUser ? 'Admin updated' : 'Admin created')
     setShowModal(false)
     setEditingUser(null)
-    setTimeout(() => fetchUsers(), 500)
+    await fetchUsers()
   }
 
   const handleBulkDelete = async (ids: string[]) => {
-    for (const id of ids) {
-      const res = await apiClient.deleteUser(id)
-      if (res.error) { showToast('error', res.error); break }
-    }
+    const results = await Promise.all(ids.map(id => apiClient.deleteUser(id)))
+    const firstError = results.find(r => r.error)
+    if (firstError) { showToast('error', firstError.error!); return }
     showToast('success', `${ids.length} user${ids.length > 1 ? 's' : ''} deleted`)
-    setTimeout(() => fetchUsers(), 500)
+    await fetchUsers()
   }
 
   return detailUser ? (
@@ -120,7 +120,7 @@ export default function AdminUsersPage() {
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
-        pageSize={100}
+        pageSize={itemsPerPage}
         onPageChange={setCurrentPage}
         selectable
         avatarColumn={row => {

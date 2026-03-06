@@ -86,13 +86,22 @@ export default function StudentsPage() {
     await fetchStudents()
   }
 
+  // [ADDED] Optimistic UI — remove rows immediately, restore on API failure
   const handleBulkDelete = async (ids: string[]) => {
-    for (const id of ids) {
-      const res = await apiClient.deleteStudent(id)
-      if (res.error) { showToast('error', res.error); break }
+    const idSet = new Set(ids)
+    const removed = students.filter(s => idSet.has(String(s.id)))
+    setStudents(prev => prev.filter(s => !idSet.has(String(s.id))))
+    setTotalCount(prev => prev - removed.length)
+
+    const results = await Promise.all(ids.map(id => apiClient.deleteStudent(id)))
+    const firstError = results.find(r => r.error)
+    if (firstError) {
+      setStudents(prev => [...removed, ...prev])
+      setTotalCount(prev => prev + removed.length)
+      showToast('error', firstError.error!)
+      return
     }
     showToast('success', `${ids.length} student${ids.length > 1 ? 's' : ''} deleted`)
-    await fetchStudents()
   }
 
   return detailStudent ? (

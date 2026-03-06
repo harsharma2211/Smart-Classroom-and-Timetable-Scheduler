@@ -102,10 +102,9 @@ export default function SubjectsPage() {
   }
 
   const handleBulkDelete = async (ids: string[]) => {
-    for (const id of ids) {
-      const res = await apiClient.request<any>(`/courses/${id}/`, { method: 'DELETE' })
-      if (res.error) { showErrorToast(res.error); break }
-    }
+    const results = await Promise.all(ids.map(id => apiClient.request<any>(`/courses/${id}/`, { method: 'DELETE' })))
+    const firstError = results.find(r => r.error)
+    if (firstError) { showErrorToast(firstError.error!); return }
     showSuccessToast(`${ids.length} course${ids.length > 1 ? 's' : ''} deleted`)
     await loadSubjects()
   }
