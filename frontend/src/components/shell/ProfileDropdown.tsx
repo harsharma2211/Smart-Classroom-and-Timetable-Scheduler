@@ -98,14 +98,14 @@ export default function ProfileDropdown({
         {/* Settings + Theme toggle */}
         <div className="profile-card">
           <Link href={`/${role}/settings`} onClick={onClose} className="profile-menu-item">
-            <Settings size={22} className="profile-icon" />
+            <Settings size={20} className="profile-icon" />
             <span className="flex-1">Settings</span>
           </Link>
           <div className="profile-menu-divider" />
           <button onClick={toggleTheme} className="profile-menu-item">
             {mounted && resolvedTheme === 'dark'
-              ? <Sun  size={22} className="profile-icon" />
-              : <Moon size={22} className="profile-icon" />
+              ? <Sun  size={20} className="profile-icon" />
+              : <Moon size={20} className="profile-icon" />
             }
             <span className="flex-1">
               {mounted && resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}

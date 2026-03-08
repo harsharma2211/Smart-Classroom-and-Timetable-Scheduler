@@ -78,6 +78,28 @@ def setup_logging():
     logging.getLogger("uvicorn").setLevel(logging.INFO)
     logging.getLogger("fastapi").setLevel(logging.INFO)
     logging.getLogger("watchfiles").setLevel(logging.WARNING)  # Suppress file change spam
+
+    # Engine sub-loggers: must be explicitly wired so that log records from
+    # background-task coroutines (which run under __name__ = "engine.*" not
+    # "fastapi") propagate to the root handlers configured above.
+    # Without this, the entire CP-SAT / clustering trace is silently swallowed
+    # and only the single "POST /api/generate_variants 200 OK" line appears.
+    for _engine_logger in (
+        "engine",
+        "engine.cpsat",
+        "engine.cpsat.solver",
+        "engine.cpsat.dept_solver",
+        "engine.cpsat.cross_dept_solver",
+        "engine.stage1_clustering",
+        "engine.ga",
+        "engine.rl",
+        "core.patterns.saga",
+        "core.services.generation_service",
+        "utils.django_client",
+    ):
+        _log = logging.getLogger(_engine_logger)
+        _log.setLevel(getattr(logging, log_level))
+        _log.propagate = True  # let records reach root handlers
     
     logger = logging.getLogger(__name__)
     logger.info(f"Logging configured: level={log_level}, file={log_file}")

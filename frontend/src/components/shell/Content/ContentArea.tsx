@@ -16,7 +16,7 @@ interface ContentAreaProps {
  * the client switches to the responsive class after hydration.
  *
  * CSS preserved from original AppShell:
- *   - margin transition: transition-[margin-left] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]
+ *   - margin transition: transition-[margin-left] duration-100 ease-[cubic-bezier(0.4,0,0.2,1)]
  *   - expanded: md:ml-[284px]
  *   - collapsed: md:ml-[72px]
  *   - top offset: mt-[68px] md:mt-[76px]
@@ -28,7 +28,7 @@ export default function ContentArea({ sidebarOpen, children }: ContentAreaProps)
 
   const marginCls = mounted
     ? [
-        'transition-[margin-left] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]',
+        'transition-[margin-left] duration-100 ease-[cubic-bezier(0.4,0,0.2,1)]',
         sidebarOpen ? 'md:ml-[284px]' : 'md:ml-[72px]',
       ].join(' ')
     : 'md:ml-[284px]'
@@ -47,7 +47,7 @@ export default function ContentArea({ sidebarOpen, children }: ContentAreaProps)
           'content-scroll',
           'flex-1 min-h-0',
           'flex flex-col',
-          'mt-4 mb-4 ml-1 mr-1',   /* 16px top/bottom, 4px left/right */
+          'mt-4 mb-4',   /* 16px top/bottom, 4px left, 16px right */
           'overflow-y-auto overflow-x-hidden',
           'rounded-[24px]',         /* 24px — matches M3 large shape */
           'bg-white dark:bg-[#1e1e1e]',

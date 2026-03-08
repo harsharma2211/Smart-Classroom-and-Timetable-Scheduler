@@ -46,7 +46,7 @@ export default function NavItemRow({
       {/* Visible label — hidden when rail is collapsed */}
       <span
         className={[
-          'text-[14px] transition-[opacity] duration-200',
+          'text-[14px] transition-[opacity] duration-100',
           active ? 'font-bold text-[#1f1f1f] dark:text-[#e3e3e3]' : 'font-medium text-[#444746] dark:text-[#bdc1c6]',
           collapsed ? 'opacity-0 w-0 overflow-hidden' : 'hhIRA opacity-100',
         ].join(' ')}

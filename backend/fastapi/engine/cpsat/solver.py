@@ -189,6 +189,29 @@ class AdaptiveCPSATSolver:
             )
             return None
 
+        # ------------------------------------------------------------------
+        # PRE-FLIGHT: student conflict density check
+        #
+        # If >50% of all domain variable slots are contested by student
+        # conflicts, Full/Relaxed strategies will always time-out at BHU scale
+        # (2320 courses, 19072 students).  Skip directly to the starting
+        # strategy chosen by select_strategy_for_cluster_size — which is
+        # already STRATEGIES[0] = Faculty+Room Only after the BHU-scale fix.
+        # This check is a no-op for that config but remains a safety net if
+        # the strategy ladder is ever extended again.
+        # ------------------------------------------------------------------
+        _total_conflict_groups = len(self._student_conflict_groups)
+        _total_vars = sum(len(v) for v in self.valid_domains.values())
+        if _total_vars > 0 and _total_conflict_groups > _total_vars * 0.5:
+            logger.warning(
+                "[CP-SAT] HIGH STUDENT CONFLICT DENSITY: %d conflict groups / %d vars "
+                "(%.1f%%) — forcing start at strategy %d (%s)",
+                _total_conflict_groups, _total_vars,
+                100.0 * _total_conflict_groups / _total_vars,
+                _start_idx + 1,
+                STRATEGIES[_start_idx]['name'],
+            )
+
         for strategy_idx, strategy in enumerate(STRATEGIES):
             if strategy_idx < _start_idx:
                 continue
@@ -385,11 +408,14 @@ class AdaptiveCPSATSolver:
             dept_id = getattr(course, 'department_id', None)
 
             # Primary filter: capacity + type + department + features
+            # BHU-scale fix: relax to 0.7×–4.0× enrolled (was 0.9×–1.5×).
+            # Tight band produced empty domains for many courses → instant
+            # INFEASIBLE before CP-SAT even starts → stuck-at-57% symptom.
             candidate_rooms = [
                 room for room in self.rooms
                 if (
-                    room.capacity >= enrolled * 0.9
-                    and room.capacity <= enrolled * 1.5
+                    room.capacity >= enrolled * 0.7   # was 0.9
+                    and room.capacity <= enrolled * 4.0  # was 1.5
                     and room.room_type.upper() == required_type.upper()
                     and (
                         getattr(room, 'department_id', None) == dept_id
@@ -406,22 +432,33 @@ class AdaptiveCPSATSolver:
             candidate_rooms.sort(key=lambda r: abs(r.capacity - enrolled))
             candidate_rooms = candidate_rooms[:MAX_ROOMS_PER_COURSE]
 
-            # Fallback 1: relax features, keep type + capacity
+            # Fallback 1: relax features, keep type + lenient capacity
             if not candidate_rooms:
                 candidate_rooms = [
                     room for room in self.rooms
                     if (
-                        room.capacity >= enrolled * 0.9
+                        room.capacity >= enrolled * 0.5  # was 0.9
                         and room.room_type.upper() == required_type.upper()
                     )
                 ][:MAX_ROOMS_PER_COURSE]
 
-            # Fallback 2: relax type, keep capacity only
+            # Fallback 2: relax type, keep absolute minimum capacity
             if not candidate_rooms:
                 candidate_rooms = [
                     room for room in self.rooms
-                    if room.capacity >= enrolled * 0.9
+                    if room.capacity >= enrolled * 0.3  # was 0.9
                 ][:MAX_ROOMS_PER_COURSE]
+
+            # Fallback 3: last resort — any room, best-fit by capacity
+            if not candidate_rooms:
+                candidate_rooms = sorted(
+                    self.rooms,
+                    key=lambda r: abs(r.capacity - enrolled)
+                )[:MAX_ROOMS_PER_COURSE]
+                logger.warning(
+                    "[Domain] Course %s: no matching room found, using best-fit fallback",
+                    course.course_id,
+                )
 
             # Filter time slots: skip lunch breaks
             valid_slots = [

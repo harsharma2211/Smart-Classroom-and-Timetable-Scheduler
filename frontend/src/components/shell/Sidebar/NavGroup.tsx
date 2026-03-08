@@ -59,7 +59,7 @@ export default function NavGroupRow({
           size={14}
           strokeWidth={2.5}
           className={[
-            'absolute left-1 shrink-0 transition-[opacity,transform] duration-200',
+            'absolute left-1 shrink-0 transition-[opacity,transform] duration-100',
             collapsed ? 'opacity-0' : 'opacity-100',
             open ? 'rotate-0' : '-rotate-90',
           ].join(' ')}
@@ -68,7 +68,7 @@ export default function NavGroupRow({
         {/* Label — same fade transition as NavItem */}
         <span
           className={[
-            'text-[14px] font-medium transition-[opacity] duration-200 text-left text-[#444746] dark:text-[#bdc1c6]',
+            'text-[14px] font-medium transition-[opacity] duration-100 text-left text-[#444746] dark:text-[#bdc1c6]',
             collapsed ? 'opacity-0 w-0 overflow-hidden' : 'hhIRA opacity-100',
           ].join(' ')}
         >

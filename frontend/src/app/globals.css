@@ -101,7 +101,7 @@
   --sidebar-width-collapsed: 72px;
 
   /* ── NEW: ProfileDropdown — Dropdown & Sheet surfaces ── */
-  --color-dropdown-bg:   #eceff5;       /* Profile dropdown surface */
+  --color-dropdown-bg:   #F0F4F9;       /* Profile dropdown surface */
   --color-sheet-bg:      #eceff5;       /* Mobile sheet surface */
   --color-sheet-shadow:  0 -2px 12px rgba(60,64,67,0.15);
 
@@ -141,7 +141,7 @@
   --spinner-track: #E8F0FE;
 
   /* ── Row / List (Google Contacts spec) ── */
-  --row-height:          52px;
+  --row-height:          56px;
   --row-header-height:   40px;
   --row-hover-bg:        #f1f3f4;
   --row-selected-bg:     #c2e7ff;
@@ -423,15 +423,16 @@
     padding: 0 24px;
     background-color: var(--color-bg-surface);
     color: var(--color-primary);
-    border: 1px solid var(--color-border);
+    border: none;
     border-radius: var(--radius-full);
     font-size: 14px;
     font-weight: 500;
     font-family: var(--font-label);
     letter-spacing: 0.00625em;
+    box-shadow: var(--shadow-card);
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 100ms, border-color 100ms, opacity 150ms;
+    transition: background-color 100ms, opacity 150ms;
   }
   .btn-secondary:hover { background-color: var(--color-primary-subtle); }
   .btn-secondary:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
@@ -504,19 +505,19 @@
     padding: 0 24px;
     background: transparent;
     color: var(--color-primary);
-    border: 1px solid var(--color-border);
+    border: none;
     border-radius: var(--radius-full);
     font-size: 14px;
     font-weight: 500;
     font-family: var(--font-label);
     letter-spacing: 0.00625em;
+    box-shadow: var(--shadow-card);
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 200ms, border-color 200ms;
+    transition: background-color 200ms;
   }
   .btn-outlined:hover {
     background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
-    border-color: var(--color-primary);
   }
   .btn-outlined:active {
     background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
@@ -1107,9 +1108,9 @@
   /* ── ProfileDropdown — floating panel (all screen sizes) ──────────────── */
   .profile-dropdown {
     position: fixed;
-    top: calc(var(--header-height-md) + 6px);
+    top: calc(var(--header-height-md) + 2px);
     right: 11px;
-    width: 360px;
+    width: 420px;
     background: var(--color-dropdown-bg);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-extra-large);
@@ -1122,7 +1123,7 @@
   /* Mobile: full-width, just below shorter (56px) header */
   @media (max-width: 639px) {
     .profile-dropdown {
-      top: calc(56px + 6px);
+      top: calc(56px + 2px);
       right: 8px;
       left: 8px;
       width: auto;
@@ -1227,7 +1228,7 @@
     overflow: visible;
     display: flex;
     gap: 2px;
-    min-height: 56px;
+    min-height: 64px;
   }
   .profile-card-split-item {
     flex: 1;
@@ -1237,7 +1238,7 @@
     gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
     font-size: 14px;
-    font-weight: 400;
+    font-weight: 500;
     font-family: var(--font-label);
     color: var(--color-text-primary);
     background: #FFFFFF;
@@ -1246,18 +1247,18 @@
     transition: background 120ms;
     text-decoration: none;
     border-radius: var(--radius-extra-large);
-    height: 56px;
+    height: 58px;
   }
   .dark .profile-card-split-item {
     background: var(--color-bg-surface-2);
   }
   /* Left button — fully rounded left, slightly rounded right */
   .profile-card-split-item:first-child {
-    border-radius: var(--radius-extra-large) 8px 8px var(--radius-extra-large);
+    border-radius: var(--radius-extra-large) 4px 4px var(--radius-extra-large);
   }
   /* Right button — slightly rounded left, fully rounded right */
   .profile-card-split-item:last-child {
-    border-radius: 8px var(--radius-extra-large) var(--radius-extra-large) 8px;
+    border-radius: 4px var(--radius-extra-large) var(--radius-extra-large) 4px;
   }
   .profile-card-split-item:hover { background: rgba(68,71,70,0.08); }
   .dark .profile-card-split-item:hover { background: rgba(255,255,255,0.08); }
@@ -1267,9 +1268,9 @@
     align-items: center;
     gap: var(--space-3);
     padding: 0 var(--space-4);
-    height: 56px;
+    height: 58px;
     font-size: 14px;
-    font-weight: 400;
+    font-weight: 500;
     font-family: var(--font-body);
     color: var(--color-text-primary);
     background: transparent;
@@ -1288,8 +1289,11 @@
     margin: 0 var(--space-4);
   }
   .profile-icon {
-    color: var(--color-text-primary);
+    color: #444746;
     flex-shrink: 0;
+  }
+  .dark .profile-icon {
+    color: #c4c7c5;
   }
   .profile-footer {
     text-align: center;

@@ -26,7 +26,7 @@ export default function SearchBar({ open, onClose }: SearchBarProps) {
     <>
       {/* ── Desktop search bar (Zone 2, hidden on mobile) — starts flush at sidebar right edge ── */}
       <div className="hidden md:flex flex-1 items-center">
-        <div className="flex items-center overflow-hidden transition-shadow duration-150 w-full max-w-[720px] h-12 bg-[#e9eef6] dark:bg-[#2c2d30] rounded-full focus-within:shadow-[0_2px_8px_rgba(32,33,36,0.2)] dark:focus-within:shadow-[0_2px_8px_rgba(0,0,0,0.4)] focus-within:bg-white dark:focus-within:bg-[#3c4043]">
+        <div className="flex items-center overflow-hidden transition-shadow duration-150 w-full max-w-[720px] h-12 bg-[var(--color-dropdown-bg)] rounded-full focus-within:shadow-[0_2px_8px_rgba(32,33,36,0.2)] dark:focus-within:shadow-[0_2px_8px_rgba(0,0,0,0.4)] focus-within:bg-white dark:focus-within:bg-[var(--color-dropdown-bg)]">
           <span className="ml-4 mr-2 shrink-0 flex items-center justify-center text-[#444746] dark:text-[#9aa0a6]">
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -21,7 +21,7 @@ export default function SidebarNav({
   const pathname = usePathname()
 
   return (
-    <nav className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-2">
+    <nav className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4">
       {navItems.map((entry) => {
         if (isNavGroup(entry)) {
           return (
