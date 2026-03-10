@@ -275,6 +275,14 @@ export default function TimetableReviewPage() {
   const runningRetryRef = useRef(0)
   const MAX_RUNNING_RETRIES = 3
 
+  // Guard against the variant-not-yet-ready race: FastAPI writes status=completed
+  // to Redis (firing the SSE 'done' event) and then writes timetable_data to the
+  // DB.  The Celery cache-warm task also runs asynchronously.  If the review page
+  // loads before either write is visible, the variants list comes back empty.
+  // We retry a few times (2 s apart) so the page self-heals without user action.
+  const variantRetryRef = useRef(0)
+  const MAX_VARIANT_RETRIES = 3
+
   // ── Lazy-render the timetable grid via IntersectionObserver ─────────────
   // BUG FIX: The previous code put the observer in useEffect([gridInView]).
   // On first load: activeVariant=null → section not in DOM → ref is null →
@@ -321,6 +329,7 @@ export default function TimetableReviewPage() {
   useEffect(() => {
     if (workflowId) {
       runningRetryRef.current = 0  // reset retries on fresh navigation
+      variantRetryRef.current = 0  // reset variant retries on fresh navigation
       loadWorkflowData()
     }
   }, [workflowId])
@@ -411,9 +420,24 @@ export default function TimetableReviewPage() {
       const variantToLoad: TimetableVariant | undefined = selected ?? variantsData[0]
 
       if (!variantToLoad) {
+        // If the job is in a terminal state but variants are empty, the Celery
+        // cache-warm task or the DB write may still be in-flight.  Retry a few
+        // times (2 s apart) before giving up and showing the empty state.
+        const isTerminal = workflowData.status === 'completed' ||
+          workflowData.status === 'approved' ||
+          workflowData.status === 'pending_review'
+        if (isTerminal && variantRetryRef.current < MAX_VARIANT_RETRIES) {
+          variantRetryRef.current += 1
+          // Keep loadingMeta=true (skeleton shows) during the wait
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          await loadWorkflowData()
+          return
+        }
+        variantRetryRef.current = 0
         setLoadingMeta(false)
         return
       }
+      variantRetryRef.current = 0
 
       setSelectedVariantId(variantToLoad.id)
       // ── Show variant cards NOW – entries load in background ──────────────
